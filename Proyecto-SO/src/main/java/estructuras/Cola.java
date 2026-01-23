@@ -6,7 +6,7 @@ package estructuras;
 
 /**
  *
- * @author Home
+ * @author Ramon-Carrasquel
  * @param <T>
  */
 public class Cola<T> {

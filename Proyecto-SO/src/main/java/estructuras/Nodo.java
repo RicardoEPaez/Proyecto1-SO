@@ -6,7 +6,7 @@ package estructuras;
 
 /**
  *Nodo generico para listas y colas
- * @author Home
+ * @author Ramon-Carrasquel
  * @param <T> El tipo de dato que guardará el nodo
  */
 public class Nodo<T> {

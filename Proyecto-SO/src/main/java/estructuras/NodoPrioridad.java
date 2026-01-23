@@ -6,7 +6,7 @@ package estructuras;
 
 /**
  * Nodo especial para la Cola de Prioridad
- * @author Home
+ * @author Ramon-Carrasquel
  * @param <T> Tipo de objeto a almacenar
  */
 public class NodoPrioridad<T> {
