@@ -7,63 +7,131 @@ package clases;
  *
  * @author ricar
  */
-public class CPU extends Thread {
-    
-    private PCB procesoActual;
-    private int cicloGlobal;
-    private boolean activo; 
-    private int tiempoCiclo; // En milisegundos
 
-    public CPU() {
-        this.procesoActual = null;
+public class CPU extends Thread {
+
+    // Referencias
+    private Planificador planificador;
+    private PCB procesoActual;
+
+    // Estado del CPU
+    private boolean activo;
+    
+    // Contadores de tiempo
+    private int cicloGlobal;     // Reloj del sistema
+    private int quantum;         // Tiempo máximo por turno
+    private int contadorQuantum; // Tiempo que lleva el proceso actual
+
+    // Constructor
+    public CPU(int quantum, Planificador planificador) {
+        this.quantum = quantum;
+        this.planificador = planificador;
         this.cicloGlobal = 0;
+        this.contadorQuantum = 0;
         this.activo = true;
-        this.tiempoCiclo = 1000; // 1 segundo por ciclo para ver la simulación
     }
 
     @Override
     public void run() {
         while (activo) {
             try {
-                // 1. Simular reloj
-                Thread.sleep(tiempoCiclo);
-                cicloGlobal++; 
+                // 1. Simulamos el paso del tiempo (1 segundo = 1 ciclo)
+                Thread.sleep(1000); 
+                cicloGlobal++;
 
-                // 2. Ejecutar proceso si existe
+                // IMPORTANTE: Llamamos al "despertador" del planificador
+                // para que revise si algún proceso terminó su I/O y debe volver a Listos.
+                planificador.verificarBloqueados(); 
+
+                // 2. Si hay un proceso cargado, ejecutamos
                 if (procesoActual != null) {
-                    // Usamos TU método ejecutar()
-                    procesoActual.ejecutar(); 
                     
-                    System.out.println("[Reloj: " + cicloGlobal + "] Ejecutando: " 
-                            + procesoActual.getNombre() 
-                            + " | PC: " + procesoActual.getProgramCounter()
+                    // Ejecuta una instrucción
+                    procesoActual.ejecutar();
+                    contadorQuantum++;
+
+                    System.out.println("[CPU Reloj:" + cicloGlobal + "] Ejecutando " + procesoActual.getNombre() 
+                            + " | Instr: " + procesoActual.getInstruccionesEjecutadas() 
                             + "/" + procesoActual.getInstruccionesTotales());
-                    
-                    // Verificar si terminó usando TU método haTerminado()
+
+                    // --- TOMA DE DECISIONES (JERARQUÍA) ---
+
+                    // A. ¿El proceso terminó todas sus instrucciones?
                     if (procesoActual.haTerminado()) {
-                        procesoActual.setEstado(Estado.TERMINADO); // Asegúrate que en Estado.java tengas EXIT o TERMINADO
-                        System.out.println("--> Proceso " + procesoActual.getNombre() + " FINALIZADO.");
-                        procesoActual = null; // Liberar CPU
+                        System.out.println("--> [CPU] FIN DE PROCESO: " + procesoActual.getNombre());
+                        procesoActual.setEstado(Estado.TERMINADO);
+                        
+                        // Avisamos al planificador (opcional) y limpiamos
+                        planificador.terminarProceso(procesoActual);
+                        liberarCPU();
                     }
-                } else {
-                    System.out.println("[Reloj: " + cicloGlobal + "] CPU Esperando...");
+                    
+                    // B. ¿El proceso necesita hacer I/O justo ahora?
+                    else if (procesoActual.necesitaIO()) {
+                        System.out.println("--> [CPU] INTERRUPCIÓN I/O: " + procesoActual.getNombre() + " va a bloquearse.");
+                        procesoActual.setEstado(Estado.BLOQUEADO);
+                        
+                        // Enviamos el proceso a la cola de bloqueados
+                        planificador.bloquearProceso(procesoActual);
+                        
+                        // El CPU queda libre inmediatamente
+                        liberarCPU();
+                    }
+                    
+                    // C. ¿Se acabó el tiempo asignado (Quantum)?
+                    else if (contadorQuantum >= quantum) {
+                        System.out.println("--> [CPU] FIN DE QUANTUM: " + procesoActual.getNombre() + " vuelve a la cola.");
+                        
+                        // El planificador lo manda al final de la cola de listos
+                        planificador.expulsarProceso(procesoActual);
+                        
+                        liberarCPU();
+                    }
                 }
-                
+
+                // 3. Si el CPU está libre, intentamos cargar el siguiente proceso
+                if (procesoActual == null) {
+                    PCB siguiente = planificador.obtenerSiguiente();
+                    
+                    if (siguiente != null) {
+                        asignarProceso(siguiente);
+                        System.out.println("[CPU] Cargando proceso: " + siguiente.getNombre());
+                    } else {
+                        // Solo imprimimos si quieres ver que está ocioso
+                        // System.out.println("[CPU] IDLE (Esperando procesos...)");
+                    }
+                }
+
             } catch (InterruptedException e) {
-                System.err.println("Error en CPU: " + e.getMessage());
+                System.err.println("Error en hilo CPU: " + e.getMessage());
             }
         }
     }
 
-    // Método para recibir procesos del Planificador
+    
     public void asignarProceso(PCB proceso) {
         this.procesoActual = proceso;
-        if (proceso != null) {
-            // Asegúrate que en Estado.java tengas EJECUCION o RUNNING
-            proceso.setEstado(Estado.EJECUCION); 
-        }
+        this.procesoActual.setEstado(Estado.EJECUCION);
+        this.contadorQuantum = 0; 
+    }
+
+    
+    private void liberarCPU() {
+        this.procesoActual = null;
+        this.contadorQuantum = 0;
+    }
+
+    // --- GETTERS (Útiles para Interfaz o Debug) ---
+
+    public PCB getProcesoActual() {
+        return procesoActual;
+    }
+
+    public int getCicloGlobal() {
+        return cicloGlobal;
     }
     
-    // Getters
-    public int getCicloGlobal() { return cicloGlobal; }
+    public void detenerCPU() {
+        this.activo = false;
+    }
 }

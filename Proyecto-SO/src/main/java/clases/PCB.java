@@ -11,7 +11,7 @@ package clases;
 public class PCB {
     private static int contadorIds = 1;
     
-    //Atributos PCB
+    // Atributos PCB
     private int id;
     private String nombre;
     private Estado estado;
@@ -20,7 +20,10 @@ public class PCB {
     private int cicloGeneracionIO;
     private int longitudIO;
     
-    //Planificacion
+    // NUEVO: Para contar el tiempo de espera
+    private int contadorIO; 
+    
+    // Planificacion
     private int instruccionesTotales;
     private int instruccionesEjecutadas;
     private int prioridad;
@@ -33,15 +36,18 @@ public class PCB {
         this.prioridad = prioridad;
         this.deadline = deadline;
         this.estado = Estado.NUEVO;
-        this.cicloGeneracionIO=cicloGeneracionIO;
-        this.longitudIO=longitudIO;
+        
+        // CORRECCIÓN IMPORTANTE: Asignar el parámetro correctamente
+        this.cicloGeneracionIO = cicloGeneracion; 
+        this.longitudIO = longitudIO;
+        this.contadorIO = 0; // Inicializar contador de espera
+        
         this.programCounter = 0;
         this.memoryAddressRegister = 0;
         this.instruccionesEjecutadas = 0;
     }
-           
-    //Metodo para simular trabajo de CPU
-    
+            
+    // Metodo para simular trabajo de CPU
     public void ejecutar(){
         if (instruccionesEjecutadas < instruccionesTotales) {
             programCounter++;
@@ -50,51 +56,43 @@ public class PCB {
         }
     }
     
+    // LÓGICA DE I/O: Detecta si toca hacer I/O en este ciclo
+    public boolean necesitaIO() {
+        // Solo si el proceso tiene I/O configurado y está en el ciclo exacto
+        return (longitudIO > 0 && instruccionesEjecutadas == cicloGeneracionIO);
+    }
+
     public boolean haTerminado() {
         return instruccionesEjecutadas >= instruccionesTotales;
     }
+
+    // Métodos para el manejo de espera (bloqueados)
+    public void aumentarContadorIO() {
+        this.contadorIO++;
+    }
     
+    public void reiniciarContadorIO() {
+        this.contadorIO = 0;
+    }
+    
+    public int getContadorIO() {
+        return contadorIO;
+    }
+
     // Getters y Setters
-    public int getId(){ 
-        return id; 
-    }
+    public int getId(){ return id; }
+    public String getNombre(){ return nombre; }
+    public Estado getEstado(){ return estado; }
+    public void setEstado(Estado estado){ this.estado = estado; }
+    public int getPrioridad(){ return prioridad; }
+    public int getDeadline(){ return deadline; }
+    public int getProgramCounter() { return programCounter; }
+    public int getInstruccionesTotales() { return instruccionesTotales; }
+    public int getCicloGeneracionIO() { return cicloGeneracionIO; }
+    public int getLongitudIO() { return longitudIO; }
     
-    public String getNombre(){ 
-        return nombre; 
-    }
-    
-    public Estado getEstado(){ 
-        return estado; 
-    }
-    
-    public void setEstado(Estado estado){ 
-        this.estado = estado; 
-    }
-    
-    public int getPrioridad(){ 
-        return prioridad; 
-    }
-    
-    public int getDeadline(){ 
-        return deadline; 
-    }
-    
-    public int getProgramCounter() {
-        return programCounter;
-    }
-
-    public int getInstruccionesTotales() {
-        return instruccionesTotales;
-    }
-    
-    // Estos los necesitará tu compañero
-    public int getCicloGeneracionIO() {
-        return cicloGeneracionIO;
-    }
-
-    public int getLongitudIO() {
-        return longitudIO;
-    }
+    // Getter útil para monitoreo
+    public int getInstruccionesEjecutadas() { return instruccionesEjecutadas; }
     
     @Override
     public String toString() {
