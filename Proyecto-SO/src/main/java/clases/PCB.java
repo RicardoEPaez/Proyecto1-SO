@@ -17,6 +17,8 @@ public class PCB {
     private Estado estado;
     private int programCounter;
     private int memoryAddressRegister;
+    private int cicloGeneracionIO;
+    private int longitudIO;
     
     //Planificacion
     private int instruccionesTotales;
@@ -24,13 +26,15 @@ public class PCB {
     private int prioridad;
     private int deadline;
     
-    public PCB(String nombre, int instruccionesTotales, int prioridad, int deadline){
+    public PCB(String nombre, int instruccionesTotales, int prioridad, int deadline, int cicloGeneracion, int longitudIO){
         this.id = contadorIds++;
         this.nombre = nombre;
         this.instruccionesTotales = instruccionesTotales;
         this.prioridad = prioridad;
         this.deadline = deadline;
         this.estado = Estado.NUEVO;
+        this.cicloGeneracionIO=cicloGeneracionIO;
+        this.longitudIO=longitudIO;
         this.programCounter = 0;
         this.memoryAddressRegister = 0;
         this.instruccionesEjecutadas = 0;
@@ -41,6 +45,7 @@ public class PCB {
     public void ejecutar(){
         if (instruccionesEjecutadas < instruccionesTotales) {
             programCounter++;
+            memoryAddressRegister++;
             instruccionesEjecutadas++;
         }
     }
@@ -72,6 +77,23 @@ public class PCB {
     
     public int getDeadline(){ 
         return deadline; 
+    }
+    
+    public int getProgramCounter() {
+        return programCounter;
+    }
+
+    public int getInstruccionesTotales() {
+        return instruccionesTotales;
+    }
+    
+    // Estos los necesitará tu compañero
+    public int getCicloGeneracionIO() {
+        return cicloGeneracionIO;
+    }
+
+    public int getLongitudIO() {
+        return longitudIO;
     }
     
     @Override
