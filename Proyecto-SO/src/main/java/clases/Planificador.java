@@ -14,55 +14,68 @@ import estructuras.ListaEnlazada;
  */
 public class Planificador {
 
-    // Cola de Listos: Usamos ColaPrioridad para respetar la jerarquía del RTOS
-    private ColaPrioridad<PCB> colaListos;
+    // CAMBIO 1: Referencia a la estrategia (el algoritmo actual)
+    private AlgoritmoPlanificacion algoritmoActual;
     
-    // Cola de Bloqueados: Usamos ListaEnlazada para poder recorrerlos y actualizar sus tiempos
+    // CAMBIO 2: Referencia al CPU (Necesaria para interrumpir en SRT)
+    private CPU cpu; 
+
+    private ColaPrioridad<PCB> colaListos;
     private ListaEnlazada<PCB> listaBloqueados;
 
     public Planificador() {
         this.colaListos = new ColaPrioridad<>();
         this.listaBloqueados = new ListaEnlazada<>();
+        this.algoritmoActual = new AlgoritmoFCFS();
     }
 
-    /**
-     * Metodo para agregar un proceso nuevo al sistema.
-     * @param proceso El PCB del proceso nuevo
-     */
+    public void setAlgoritmo(AlgoritmoPlanificacion nuevoAlgoritmo) {
+        this.algoritmoActual = nuevoAlgoritmo;
+        System.out.println("--- [SISTEMA] Algoritmo cambiado a: " + nuevoAlgoritmo.toString() + " ---");
+    }
+
+    public void setCPU(CPU cpu) {
+        this.cpu = cpu;
+    }
+    
     public synchronized void agregarProceso(PCB proceso) {
         proceso.setEstado(Estado.LISTO);
-        // Encolamos según su prioridad (menor valor = mayor prioridad)
-        colaListos.encolar(proceso, proceso.getPrioridad());
-        System.out.println("[Planificador] Proceso agregado a Listos: " + proceso.getNombre());
+         
+        algoritmoActual.encolar(colaListos, proceso);
+        
+        System.out.println("[Planificador] Agregado a Listos: " + proceso.getNombre());
+
+        
+        if (cpu != null && !cpu.estaLibre()) {
+            PCB enEjecucion = cpu.getProcesoActual();
+            
+            // Preguntamos al algoritmo: "¿El nuevo es más importante que el actual?"
+            if (algoritmoActual.debeExpropiar(enEjecucion, proceso)) {
+                System.out.println("!!! [ALGORITMO] Interrupción inmediata: " + proceso.getNombre() + " desaloja a " + enEjecucion.getNombre());
+                cpu.interrumpir(); // Esto requiere el método interrumpir() en tu CPU
+            }
+        }
     }
 
-    /**
-     * El CPU llama a este método cuando está libre y necesita un proceso.
-     * @return El siguiente PCB a ejecutar o null si no hay nadie.
-     */
     public synchronized PCB obtenerSiguiente() {
         if (colaListos.estaVacia()) {
             return null;
         }
-        // Extraemos el de mayor prioridad (frente de la cola)
+        // Simplemente sacamos el primero. El algoritmo ya se encargó de ordenarlos.
         return colaListos.desencolar();
     }
     
-    // El CPU llama a este método cuando se le acaba el Quantum a un proceso
-    // Lo devolvemos a la cola de listos (Round Robin)
     public synchronized void expulsarProceso(PCB proceso) {
         proceso.setEstado(Estado.LISTO);
-        // Al encolarlo de nuevo, si hay otros con misma prioridad, este queda detrás
-        colaListos.encolar(proceso, proceso.getPrioridad());
+       
+        algoritmoActual.encolar(colaListos, proceso);
     }
 
-    // El CPU llama a este método cuando un proceso solicita I/O (Entrada/Salida)
     public synchronized void bloquearProceso(PCB proceso) {
         proceso.setEstado(Estado.BLOQUEADO);
         listaBloqueados.agregar(proceso);
     }
 
-    // El CPU llama a este método cuando un proceso termina su ejecución.
     public synchronized void terminarProceso(PCB proceso) {
         System.out.println("[Planificador] Proceso finalizado y desalojado: " + proceso.getNombre());
     }
@@ -101,10 +114,9 @@ public class Planificador {
             p.reiniciarContadorIO();
             p.setEstado(Estado.LISTO);
             
-            // Lo mandamos a la cola de prioridad
-            colaListos.encolar(p, p.getPrioridad());
+            System.out.println("--> [Planificador] I/O Completado: " + p.getNombre());
             
-            System.out.println("--> [Planificador] I/O Completado: " + p.getNombre() + " vuelve a Listos.");
+            this.agregarProceso(p);
         }
     }
     

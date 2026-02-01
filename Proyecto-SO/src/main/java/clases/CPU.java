@@ -21,6 +21,7 @@ public class CPU extends Thread {
     private int cicloGlobal;     // Reloj del sistema
     private int quantum;         // Tiempo máximo por turno
     private int contadorQuantum; // Tiempo que lleva el proceso actual
+    private boolean interrupcionInmediata = false;
 
     // Constructor
     public CPU(int quantum, Planificador planificador) {
@@ -30,6 +31,23 @@ public class CPU extends Thread {
         this.contadorQuantum = 0;
         this.activo = true;
     }
+    
+    
+    public void setQuantum(int quantum) {
+        this.quantum = quantum;
+    }
+
+    public void interrumpir() {
+        this.interrupcionInmediata = true;
+    }
+
+    
+    public boolean estaLibre() {
+        return procesoActual == null;
+    }
+    
+    
+    
 
     @Override
     public void run() {
@@ -73,18 +91,26 @@ public class CPU extends Thread {
                         
                         // Enviamos el proceso a la cola de bloqueados
                         planificador.bloquearProceso(procesoActual);
+                        liberarCPU();
+                    }
+
+                    // C. (NUEVO) ¿Me mandaron a interrumpir por SRT?
+                    else if (this.interrupcionInmediata) {
+                        System.out.println("--> [CPU] DESALOJO POR ALGORITMO (SRT): " + procesoActual.getNombre() + " vuelve a la cola.");
                         
-                        // El CPU queda libre inmediatamente
+                        // Lo devolvemos a la cola de listos
+                        planificador.expulsarProceso(procesoActual);
+                        
+                        // Reseteamos la bandera y liberamos
+                        this.interrupcionInmediata = false;
                         liberarCPU();
                     }
                     
-                    // C. ¿Se acabó el tiempo asignado (Quantum)?
+                    // D. ¿Se acabó el tiempo asignado (Quantum)?
+                    // Solo aplica si el quantum no es infinito (RR)
                     else if (contadorQuantum >= quantum) {
                         System.out.println("--> [CPU] FIN DE QUANTUM: " + procesoActual.getNombre() + " vuelve a la cola.");
-                        
-                        // El planificador lo manda al final de la cola de listos
                         planificador.expulsarProceso(procesoActual);
-                        
                         liberarCPU();
                     }
                 }
@@ -96,10 +122,7 @@ public class CPU extends Thread {
                     if (siguiente != null) {
                         asignarProceso(siguiente);
                         System.out.println("[CPU] Cargando proceso: " + siguiente.getNombre());
-                    } else {
-                        // Solo imprimimos si quieres ver que está ocioso
-                        // System.out.println("[CPU] IDLE (Esperando procesos...)");
-                    }
+                    } 
                 }
 
             } catch (InterruptedException e) {
@@ -113,12 +136,14 @@ public class CPU extends Thread {
         this.procesoActual = proceso;
         this.procesoActual.setEstado(Estado.EJECUCION);
         this.contadorQuantum = 0; 
+        this.interrupcionInmediata = false;
     }
 
     
     private void liberarCPU() {
         this.procesoActual = null;
         this.contadorQuantum = 0;
+        this.interrupcionInmediata = false;
     }
 
     // --- GETTERS (Útiles para Interfaz o Debug) ---
