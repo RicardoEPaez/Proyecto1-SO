@@ -1,13 +1,10 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 
 package com.mycompany.proyecto.so;
-
-import clases.CPU;
-import clases.PCB;
-import clases.Planificador;
-
+import clases.*;
 /**
  *
  * @author ricar
@@ -15,40 +12,79 @@ import clases.Planificador;
 public class ProyectoFinal {
 
     public static void main(String[] args) {
-        System.out.println("=== PROYECTO SO: INICIO DE SIMULACIÓN ===");
+        
+        // --- CONFIGURACIÓN ---
+        // 1 = FCFS (Cola simple)
+        // 2 = SRT (Expropiativo / Interrupción)
+        // 3 = Round Robin (Quantum / Turnos)
+        int PRUEBA_A_EJECUTAR = 3; 
+        // ---------------------
+
+        Planificador planificador = new Planificador();
+        CPU cpu;
 
         try {
-            // 1. Instanciamos el Planificador (El de tu amigo)
-            Planificador planificador = new Planificador();
+            switch (PRUEBA_A_EJECUTAR) {
+                
+                case 1: // FCFS
+                    System.out.println("=== INICIANDO MODO FCFS ===");
+                    cpu = new CPU(9999, planificador); // Sin Quantum (infinito)
+                    planificador.setCPU(cpu);
+                    
+                    // Usamos la clase específica FCFS
+                    planificador.setAlgoritmo(new AlgoritmoFCFS());
+                    
+                    cpu.start();
+                    
+                    // Prueba: El rápido espera al lento
+                    planificador.agregarProceso(new PCB("Proceso_Lento", 5, 100, 1, 0, 0));
+                    Thread.sleep(1000); 
+                    System.out.println("--> Llegó proceso rápido (deberá esperar)");
+                    planificador.agregarProceso(new PCB("Proceso_Rapido", 2, 101, 1, 0, 0));
+                    break;
 
-            // 2. Instanciamos el CPU (Tu código)
-            // Quantum de 4 ciclos
-            CPU cpu = new CPU(4, planificador);
+                case 2: // SRT
+                    System.out.println("=== INICIANDO MODO SRT (Shortest Remaining Time) ===");
+                    cpu = new CPU(9999, planificador); // Sin Quantum
+                    planificador.setCPU(cpu);
+                    
+                    // Usamos la clase específica SRT
+                    planificador.setAlgoritmo(new AlgoritmoSRT()); 
+                    
+                    cpu.start();
 
-            // 3. Creamos Procesos de Prueba
-            // PCB(nombre, totalInst, prioridad, deadline, cicloInicioIO, duracionIO)
-            
-            // Proceso 1: Word (Largo, saldrá por Quantum varias veces)
-            PCB p1 = new PCB("Word", 10, 1, 100, 0, 0);
-            
-            // Proceso 2: Music (Pide I/O en la instrucción 2, tarda 5 ciclos esperando)
-            PCB p2 = new PCB("Music", 6, 2, 100, 2, 5);
-            
-            // Proceso 3: Notas (Corto, termina rápido)
-            PCB p3 = new PCB("Notas", 2, 3, 100, 0, 0);
+                    // Prueba: El corto interrumpe al largo
+                    planificador.agregarProceso(new PCB("Proceso_Largo", 20, 100, 1, 0, 0));
+                    Thread.sleep(1000); // Dejar que arranque
+                    System.out.println("--> (!!!) LLEGADA DE PROCESO URGENTE");
+                    planificador.agregarProceso(new PCB("Proceso_Corto", 3, 101, 1, 0, 0));
+                    break;
 
-            // 4. Cargamos los procesos al sistema
-            System.out.println("--- Cargando procesos ---");
-            planificador.agregarProceso(p1);
-            planificador.agregarProceso(p2);
-            planificador.agregarProceso(p3);
+                case 3: // Round Robin
+                    System.out.println("=== INICIANDO MODO ROUND ROBIN ===");
+                    
+                    int QUANTUM = 3;
+                    cpu = new CPU(QUANTUM, planificador); // Configuramos Quantum en CPU
+                    planificador.setCPU(cpu);
+                    
+                    // ¡AQUÍ EL CAMBIO! Usamos tu nueva clase AlgoritmoRoundRobin
+                    planificador.setAlgoritmo(new AlgoritmoRoundRobin(QUANTUM)); 
+                    
+                    cpu.start();
 
-            // 5. Encendemos el CPU
-            System.out.println("--- Iniciando CPU ---");
-            cpu.start();
+                    // Prueba: Pelea de turnos (A: 5 instr, B: 4 instr)
+                    planificador.agregarProceso(new PCB("Proceso_A", 5, 100, 1, 0, 0));
+                    planificador.agregarProceso(new PCB("Proceso_B", 4, 101, 1, 0, 0));
+                    break;
+            }
+
+            // Tiempo suficiente para ver la simulación completa
+            Thread.sleep(10000);
             
-        } catch (Exception e) {
-            System.out.println("Ocurrió un error en la inicialización: " + e.getMessage());
+            System.out.println("\n=== FIN DE LA SIMULACIÓN ===");
+            System.exit(0); // Forzamos el cierre de hilos
+
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
