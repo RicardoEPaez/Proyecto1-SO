@@ -39,19 +39,22 @@ public class Planificador {
     }
     
     public synchronized void agregarProceso(PCB proceso) {
+        // 1. Cambiamos estado y lo metemos en la cola según el algoritmo actual
         proceso.setEstado(Estado.LISTO);
          
         algoritmoActual.encolar(colaListos, proceso);
         
-        System.out.println("[Planificador] Agregado a Listos: " + proceso.getNombre());
+        // Log para ver qué pasa en consola
+        System.out.println("--> [Planificador] Proceso agregado: " + proceso.getNombre() + " | Algoritmo: " + algoritmoActual.toString());
 
-        
+        // 2. Verificación de Expropiación 
+        // Solo intentamos expropiar si el CPU está asignado y trabajando
         if (cpu != null && !cpu.estaLibre()) {
             PCB enEjecucion = cpu.getProcesoActual();
             
             // Preguntamos al algoritmo: "¿El nuevo es más importante que el actual?"
-            if (algoritmoActual.debeExpropiar(enEjecucion, proceso)) {
-                System.out.println("!!! [ALGORITMO] Interrupción inmediata: " + proceso.getNombre() + " desaloja a " + enEjecucion.getNombre());
+            if (enEjecucion != null && algoritmoActual.debeExpropiar(enEjecucion, proceso)) {
+                System.out.println("    !!! [Planificador] EXPROPIACIÓN: " + proceso.getNombre() + " desplaza a " + enEjecucion.getNombre());
                 cpu.interrumpir(); // Esto requiere el método interrumpir() en tu CPU
             }
         }
