@@ -18,9 +18,9 @@ public class CPU extends Thread {
     private boolean activo;
     
     // Contadores de tiempo
-    private int cicloGlobal;     // Reloj del sistema
-    private int quantum;         // Tiempo máximo por turno
-    private int contadorQuantum; // Tiempo que lleva el proceso actual
+    private int cicloGlobal;     
+    private int quantum;         
+    private int contadorQuantum; 
     private boolean interrupcionInmediata = false;
 
     // Constructor
@@ -37,31 +37,56 @@ public class CPU extends Thread {
         this.quantum = quantum;
     }
 
+    // Método para forzar una interrupción externa
     public void interrumpir() {
         this.interrupcionInmediata = true;
     }
-
+    
     
     public boolean estaLibre() {
         return procesoActual == null;
     }
     
+    public PCB getProcesoActual() {
+        return procesoActual;
+    }
     
-    
+    // Método llamado por el Planificador (Dispatcher) para cargar un proceso
+    public void asignarProceso(PCB proceso) {
+        this.procesoActual = proceso;
+        this.procesoActual.setEstado(Estado.EJECUCION);
+        this.contadorQuantum = 0; 
+        this.interrupcionInmediata = false;
+    }
+
+    // --- NUEVO MÉTODO AUXILIAR CRÍTICO ---
+    // Libera el CPU y dispara la interrupción hacia el Planificador
+    private void liberarYNotificar(TipoInterrupcion tipo) {
+        PCB procesoSaliente = this.procesoActual;
+        
+        // 1. Limpiamos el CPU
+        this.procesoActual = null;
+        this.contadorQuantum = 0;
+        this.interrupcionInmediata = false;
+        
+        // 2. Avisamos al Kernel (Planificador)
+        if (procesoSaliente != null) {
+            planificador.manejarInterrupcion(tipo, procesoSaliente);
+        }
+    }
 
     @Override
     public void run() {
         while (activo) {
             try {
-                // 1. Simulamos el paso del tiempo (1 segundo = 1 ciclo)
+                // 1. Reloj del Sistema (1 ciclo)
                 Thread.sleep(1000); 
                 cicloGlobal++;
-
-                // IMPORTANTE: Llamamos al "despertador" del planificador
-                // para que revise si algún proceso terminó su I/O y debe volver a Listos.
+                
+                // Mantenemos la verificación de I/O sincronizada con el reloj
                 planificador.verificarBloqueados(); 
 
-                // 2. Si hay un proceso cargado, ejecutamos
+                // 2. Ejecución
                 if (procesoActual != null) {
                     
                     // Ejecuta una instrucción
@@ -72,88 +97,45 @@ public class CPU extends Thread {
                             + " | Instr: " + procesoActual.getInstruccionesEjecutadas() 
                             + "/" + procesoActual.getInstruccionesTotales());
 
-                    // --- TOMA DE DECISIONES (JERARQUÍA) ---
+                    // --- DETECCIÓN DE EVENTOS (INTERRUPCIONES) ---
+                    // Fíjate cómo ahora el código es mucho más limpio.
+                    // Solo detectamos el "QUÉ" pasó, no decidimos el "CÓMO" solucionarlo.
 
-                    // A. ¿El proceso terminó todas sus instrucciones?
+                    // A. Fin de Proceso
                     if (procesoActual.haTerminado()) {
-                        System.out.println("--> [CPU] FIN DE PROCESO: " + procesoActual.getNombre());
-                        procesoActual.setEstado(Estado.TERMINADO);
-                        
-                        // Avisamos al planificador (opcional) y limpiamos
-                        planificador.terminarProceso(procesoActual);
-                        liberarCPU();
+                        liberarYNotificar(TipoInterrupcion.FIN_PROCESO);
                     }
                     
-                    // B. ¿El proceso necesita hacer I/O justo ahora?
+                    // B. Solicitud de I/O
                     else if (procesoActual.necesitaIO()) {
-                        System.out.println("--> [CPU] INTERRUPCIÓN I/O: " + procesoActual.getNombre() + " va a bloquearse.");
-                        procesoActual.setEstado(Estado.BLOQUEADO);
-                        
-                        // Enviamos el proceso a la cola de bloqueados
-                        planificador.bloquearProceso(procesoActual);
-                        liberarCPU();
+                        liberarYNotificar(TipoInterrupcion.SOLICITUD_IO);
                     }
 
-                    // C. (NUEVO) ¿Me mandaron a interrumpir por SRT?
+                    // C. Desalojo por Prioridad (Algoritmos Expropiativos)
                     else if (this.interrupcionInmediata) {
-                        System.out.println("--> [CPU] DESALOJO POR ALGORITMO (SRT): " + procesoActual.getNombre() + " vuelve a la cola.");
-                        
-                        // Lo devolvemos a la cola de listos
-                        planificador.expulsarProceso(procesoActual);
-                        
-                        // Reseteamos la bandera y liberamos
-                        this.interrupcionInmediata = false;
-                        liberarCPU();
+                        liberarYNotificar(TipoInterrupcion.DESALOJO_POR_PRIORIDAD);
                     }
                     
-                    // D. ¿Se acabó el tiempo asignado (Quantum)?
-                    // Solo aplica si el quantum no es infinito (RR)
-                    else if (contadorQuantum >= quantum) {
-                        System.out.println("--> [CPU] FIN DE QUANTUM: " + procesoActual.getNombre() + " vuelve a la cola.");
-                        planificador.expulsarProceso(procesoActual);
-                        liberarCPU();
+                    // D. Tiempo Agotado (Quantum)
+                    else if (quantum < 9999 && contadorQuantum >= quantum) {
+                        liberarYNotificar(TipoInterrupcion.TIEMPO_AGOTADO);
                     }
-                }
-
-                // 3. Si el CPU está libre, intentamos cargar el siguiente proceso
+                } 
+                
+                // 3. Si el CPU está libre, intentamos pedir trabajo al Dispatcher
+                // (Esto cubre el caso de arranque o cuando la cola se vació y llegó algo nuevo)
                 if (procesoActual == null) {
-                    PCB siguiente = planificador.obtenerSiguiente();
-                    
-                    if (siguiente != null) {
-                        asignarProceso(siguiente);
-                        System.out.println("[CPU] Cargando proceso: " + siguiente.getNombre());
-                    } 
+                    if (planificador.hayProcesosListos()) {
+                        PCB siguiente = planificador.obtenerSiguiente();
+                        asignarProceso(siguiente); // El Dispatcher carga el proceso
+                        System.out.println("[CPU] Dispatcher cargó: " + siguiente.getNombre());
+                    }
                 }
 
             } catch (InterruptedException e) {
                 System.err.println("Error en hilo CPU: " + e.getMessage());
             }
         }
-    }
-
-    
-    public void asignarProceso(PCB proceso) {
-        this.procesoActual = proceso;
-        this.procesoActual.setEstado(Estado.EJECUCION);
-        this.contadorQuantum = 0; 
-        this.interrupcionInmediata = false;
-    }
-
-    
-    private void liberarCPU() {
-        this.procesoActual = null;
-        this.contadorQuantum = 0;
-        this.interrupcionInmediata = false;
-    }
-
-    // --- GETTERS (Útiles para Interfaz o Debug) ---
-
-    public PCB getProcesoActual() {
-        return procesoActual;
-    }
-
-    public int getCicloGlobal() {
-        return cicloGlobal;
     }
     
     public void detenerCPU() {
