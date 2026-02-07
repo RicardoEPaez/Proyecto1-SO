@@ -90,6 +90,42 @@ public class ProyectoFinal {
                     planificador.agregarProceso(pUrgente);
                     
                     break;
+                    
+                case 6: 
+                    System.out.println("=== TEST DE CARGA AUTOMÁTICA (GENERADOR) ===");
+                    
+                    // Configuramos un algoritmo robusto (Round Robin) para verlos turnarse
+                    int Q_AUTO = 3;
+                    cpu = new CPU(Q_AUTO, planificador);
+                    planificador.setCPU(cpu);
+                    planificador.setAlgoritmo(new AlgoritmoRoundRobin(Q_AUTO));
+                    cpu.start();
+
+                    // PASO 1: Carga Masiva Inicial (Simula inicio del SO)
+                    System.out.println("--> [SISTEMA] Generando carga inicial de 5 procesos...");
+                    PCB[] iniciales = GeneradorProcesos.generarMasivos(5);
+                    
+                    for (PCB p : iniciales) {
+                        System.out.println("    + Cargando: " + p.getNombre() + " (Inst: " + p.getInstruccionesTotales() + ", Prio: " + p.getPrioridad() + ")");
+                        planificador.agregarProceso(p);
+                    }
+                    
+                    // Dejamos que el CPU trabaje unos segundos con la carga inicial
+                    Thread.sleep(5000);
+
+                    // PASO 2: Llegada de Procesos Dinámicos (Simula botón "Emergencia" o tráfico normal)
+                    // Vamos a inyectar 3 procesos más, uno cada 3 segundos
+                    for (int i = 0; i < 3; i++) {
+                        System.out.println("\n--> [TIEMPO REAL] Generando proceso entrante aleatorio...");
+                        PCB nuevo = GeneradorProcesos.generarProcesoAleatorio();
+                        
+                        System.out.println("    + NUEVO PROCESO DETECTADO: " + nuevo.getNombre() + (nuevo.getCicloGeneracionIO() > 0 ? " [CON I/O]" : ""));
+                        planificador.agregarProceso(nuevo);
+                        
+                        // Pausa para ver el efecto en consola antes de que llegue el siguiente
+                        Thread.sleep(3000); 
+                    }
+                    break;
             }
 
             // Damos tiempo para ver toda la simulación antes de cerrar
