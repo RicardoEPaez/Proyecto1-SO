@@ -5,6 +5,7 @@
 
 package com.mycompany.proyecto.so;
 import clases.*;
+
 /**
  *
  * @author ricar
@@ -18,6 +19,7 @@ public class ProyectoFinal {
         // 2 = SRT
         // 3 = Round Robin
         // 5 = PRUEBA MAESTRA (Interrupciones + I/O + Expropiación)
+        // 6 = PRUEBA DE GENERADOR (Carga Masiva + Dinámica + Memoria)
         int PRUEBA_A_EJECUTAR = 5; 
         // ---------------------
 
@@ -34,9 +36,10 @@ public class ProyectoFinal {
                     planificador.setAlgoritmo(new AlgoritmoFCFS());
                     cpu.start();
                     
-                    planificador.agregarProceso(new PCB("Proceso_Lento", 5, 100, 0, 0, 0));
+                    // CORREGIDO: Agregado tamaño 128MB y 64MB al final
+                    planificador.agregarProceso(new PCB("Proceso_Lento", 5, 100, 0, 0, 0, 128));
                     Thread.sleep(1000); 
-                    planificador.agregarProceso(new PCB("Proceso_Rapido", 2, 101, 0, 0, 0));
+                    planificador.agregarProceso(new PCB("Proceso_Rapido", 2, 101, 0, 0, 0, 64));
                     break;
 
                 case 2: // SRT
@@ -46,10 +49,12 @@ public class ProyectoFinal {
                     planificador.setAlgoritmo(new AlgoritmoSRT()); 
                     cpu.start();
 
-                    planificador.agregarProceso(new PCB("Proceso_Largo", 20, 100, 0, 0, 0));
+                    // CORREGIDO: Agregado tamaño 256MB
+                    planificador.agregarProceso(new PCB("Proceso_Largo", 20, 100, 0, 0, 0, 256));
                     Thread.sleep(1000);
                     System.out.println("--> (!!!) LLEGADA DE PROCESO CORTO");
-                    planificador.agregarProceso(new PCB("Proceso_Corto", 3, 101, 0, 0, 0));
+                    // CORREGIDO: Agregado tamaño 64MB
+                    planificador.agregarProceso(new PCB("Proceso_Corto", 3, 101, 0, 0, 0, 64));
                     break;
 
                 case 3: // Round Robin
@@ -60,22 +65,22 @@ public class ProyectoFinal {
                     planificador.setAlgoritmo(new AlgoritmoRoundRobin(QUANTUM)); 
                     cpu.start();
 
-                    planificador.agregarProceso(new PCB("Proceso_A", 5, 100, 0, 0, 0));
-                    planificador.agregarProceso(new PCB("Proceso_B", 4, 101, 0, 0, 0));
+                    // CORREGIDO: Agregados tamaños estándar 128MB
+                    planificador.agregarProceso(new PCB("Proceso_A", 5, 100, 0, 0, 0, 128));
+                    planificador.agregarProceso(new PCB("Proceso_B", 4, 101, 0, 0, 0, 128));
                     break;
                     
-                case 5: // SISTEMA DE INTERRUPCIONES (NUEVO)
+                case 5: // SISTEMA DE INTERRUPCIONES
                     System.out.println("=== TEST DE SISTEMA DE INTERRUPCIONES Y KERNEL ===");
                     
-                    // Usamos Prioridad para que sea evidente quién debe mandar
                     cpu = new CPU(9999, planificador); 
                     planificador.setCPU(cpu);
                     planificador.setAlgoritmo(new AlgoritmoPrioridad());
                     cpu.start();
 
                     // 1. LANZAMOS UN PROCESO QUE HACE I/O
-                    // Parametros: Nombre, Total=20, Prio=10, Deadline=10, InicioIO=3, DuracionIO=5
-                    PCB pLento = new PCB("Proceso_IO", 20, 10, 10, 3, 5);
+                    // Parametros: Nombre, Total=20, Prio=10, Deadline=10, InicioIO=3, DuracionIO=5, TAMAÑO=200MB
+                    PCB pLento = new PCB("Proceso_IO", 20, 10, 10, 3, 5, 200);
                     
                     System.out.println("--> [USER] Agregando Proceso que pedirá I/O en breve...");
                     planificador.agregarProceso(pLento);
@@ -84,37 +89,34 @@ public class ProyectoFinal {
                     Thread.sleep(8000); 
 
                     // 2. LANZAMOS UN PROCESO URGENTE PARA CAUSAR EXPROPIACIÓN
-                    // Parametros: Nombre, Total=5, Prio=1, Deadline=1, InicioIO=0, DuracionIO=0
+                    // Parametros: ..., TAMAÑO=64MB
                     System.out.println("\n--> [USER] !!! LANZANDO PROCESO URGENTE !!!");
-                    PCB pUrgente = new PCB("Proceso_Urgente", 5, 1, 1, 0, 0);
+                    PCB pUrgente = new PCB("Proceso_Urgente", 5, 1, 1, 0, 0, 64);
                     planificador.agregarProceso(pUrgente);
-                    
                     break;
                     
                 case 6: 
                     System.out.println("=== TEST DE CARGA AUTOMÁTICA (GENERADOR) ===");
                     
-                    // Configuramos un algoritmo robusto (Round Robin) para verlos turnarse
                     int Q_AUTO = 3;
                     cpu = new CPU(Q_AUTO, planificador);
                     planificador.setCPU(cpu);
                     planificador.setAlgoritmo(new AlgoritmoRoundRobin(Q_AUTO));
                     cpu.start();
 
-                    // PASO 1: Carga Masiva Inicial (Simula inicio del SO)
+                    // PASO 1: Carga Masiva Inicial
                     System.out.println("--> [SISTEMA] Generando carga inicial de 5 procesos...");
+                    // Nota: GeneradorProcesos ya lo actualizaste para que incluya tamaños aleatorios
                     PCB[] iniciales = GeneradorProcesos.generarMasivos(5);
                     
                     for (PCB p : iniciales) {
-                        System.out.println("    + Cargando: " + p.getNombre() + " (Inst: " + p.getInstruccionesTotales() + ", Prio: " + p.getPrioridad() + ")");
+                        System.out.println("    + Cargando: " + p.getNombre() + " (Inst: " + p.getInstruccionesTotales() + ", MB: " + p.getTamano() + ")");
                         planificador.agregarProceso(p);
                     }
                     
-                    // Dejamos que el CPU trabaje unos segundos con la carga inicial
                     Thread.sleep(5000);
 
-                    // PASO 2: Llegada de Procesos Dinámicos (Simula botón "Emergencia" o tráfico normal)
-                    // Vamos a inyectar 3 procesos más, uno cada 3 segundos
+                    // PASO 2: Llegada de Procesos Dinámicos
                     for (int i = 0; i < 3; i++) {
                         System.out.println("\n--> [TIEMPO REAL] Generando proceso entrante aleatorio...");
                         PCB nuevo = GeneradorProcesos.generarProcesoAleatorio();
@@ -122,13 +124,11 @@ public class ProyectoFinal {
                         System.out.println("    + NUEVO PROCESO DETECTADO: " + nuevo.getNombre() + (nuevo.getCicloGeneracionIO() > 0 ? " [CON I/O]" : ""));
                         planificador.agregarProceso(nuevo);
                         
-                        // Pausa para ver el efecto en consola antes de que llegue el siguiente
                         Thread.sleep(3000); 
                     }
                     break;
             }
 
-            // Damos tiempo para ver toda la simulación antes de cerrar
             Thread.sleep(15000);
             
             System.out.println("\n=== FIN DE LA SIMULACIÓN ===");
