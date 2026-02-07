@@ -14,10 +14,11 @@ public class ProyectoFinal {
     public static void main(String[] args) {
         
         // --- CONFIGURACIÓN ---
-        // 1 = FCFS (Cola simple)
-        // 2 = SRT (Expropiativo / Interrupción)
-        // 3 = Round Robin (Quantum / Turnos)
-        int PRUEBA_A_EJECUTAR = 3; 
+        // 1 = FCFS
+        // 2 = SRT
+        // 3 = Round Robin
+        // 5 = PRUEBA MAESTRA (Interrupciones + I/O + Expropiación)
+        int PRUEBA_A_EJECUTAR = 5; 
         // ---------------------
 
         Planificador planificador = new Planificador();
@@ -28,61 +29,74 @@ public class ProyectoFinal {
                 
                 case 1: // FCFS
                     System.out.println("=== INICIANDO MODO FCFS ===");
-                    cpu = new CPU(9999, planificador); // Sin Quantum (infinito)
+                    cpu = new CPU(9999, planificador);
                     planificador.setCPU(cpu);
-                    
-                    // Usamos la clase específica FCFS
                     planificador.setAlgoritmo(new AlgoritmoFCFS());
-                    
                     cpu.start();
                     
-                    // Prueba: El rápido espera al lento
-                    planificador.agregarProceso(new PCB("Proceso_Lento", 5, 100, 1, 0, 0));
+                    planificador.agregarProceso(new PCB("Proceso_Lento", 5, 100, 0, 0, 0));
                     Thread.sleep(1000); 
-                    System.out.println("--> Llegó proceso rápido (deberá esperar)");
-                    planificador.agregarProceso(new PCB("Proceso_Rapido", 2, 101, 1, 0, 0));
+                    planificador.agregarProceso(new PCB("Proceso_Rapido", 2, 101, 0, 0, 0));
                     break;
 
                 case 2: // SRT
-                    System.out.println("=== INICIANDO MODO SRT (Shortest Remaining Time) ===");
-                    cpu = new CPU(9999, planificador); // Sin Quantum
+                    System.out.println("=== INICIANDO MODO SRT ===");
+                    cpu = new CPU(9999, planificador);
                     planificador.setCPU(cpu);
-                    
-                    // Usamos la clase específica SRT
                     planificador.setAlgoritmo(new AlgoritmoSRT()); 
-                    
                     cpu.start();
 
-                    // Prueba: El corto interrumpe al largo
-                    planificador.agregarProceso(new PCB("Proceso_Largo", 20, 100, 1, 0, 0));
-                    Thread.sleep(1000); // Dejar que arranque
-                    System.out.println("--> (!!!) LLEGADA DE PROCESO URGENTE");
-                    planificador.agregarProceso(new PCB("Proceso_Corto", 3, 101, 1, 0, 0));
+                    planificador.agregarProceso(new PCB("Proceso_Largo", 20, 100, 0, 0, 0));
+                    Thread.sleep(1000);
+                    System.out.println("--> (!!!) LLEGADA DE PROCESO CORTO");
+                    planificador.agregarProceso(new PCB("Proceso_Corto", 3, 101, 0, 0, 0));
                     break;
 
                 case 3: // Round Robin
                     System.out.println("=== INICIANDO MODO ROUND ROBIN ===");
-                    
                     int QUANTUM = 3;
-                    cpu = new CPU(QUANTUM, planificador); // Configuramos Quantum en CPU
+                    cpu = new CPU(QUANTUM, planificador);
                     planificador.setCPU(cpu);
-                    
-                    // ¡AQUÍ EL CAMBIO! Usamos tu nueva clase AlgoritmoRoundRobin
                     planificador.setAlgoritmo(new AlgoritmoRoundRobin(QUANTUM)); 
-                    
                     cpu.start();
 
-                    // Prueba: Pelea de turnos (A: 5 instr, B: 4 instr)
-                    planificador.agregarProceso(new PCB("Proceso_A", 5, 100, 1, 0, 0));
-                    planificador.agregarProceso(new PCB("Proceso_B", 4, 101, 1, 0, 0));
+                    planificador.agregarProceso(new PCB("Proceso_A", 5, 100, 0, 0, 0));
+                    planificador.agregarProceso(new PCB("Proceso_B", 4, 101, 0, 0, 0));
+                    break;
+                    
+                case 5: // SISTEMA DE INTERRUPCIONES (NUEVO)
+                    System.out.println("=== TEST DE SISTEMA DE INTERRUPCIONES Y KERNEL ===");
+                    
+                    // Usamos Prioridad para que sea evidente quién debe mandar
+                    cpu = new CPU(9999, planificador); 
+                    planificador.setCPU(cpu);
+                    planificador.setAlgoritmo(new AlgoritmoPrioridad());
+                    cpu.start();
+
+                    // 1. LANZAMOS UN PROCESO QUE HACE I/O
+                    // Parametros: Nombre, Total=20, Prio=10, Deadline=10, InicioIO=3, DuracionIO=5
+                    PCB pLento = new PCB("Proceso_IO", 20, 10, 10, 3, 5);
+                    
+                    System.out.println("--> [USER] Agregando Proceso que pedirá I/O en breve...");
+                    planificador.agregarProceso(pLento);
+                    
+                    // Esperamos a que pida I/O y vuelva (aprox 8 seg)
+                    Thread.sleep(8000); 
+
+                    // 2. LANZAMOS UN PROCESO URGENTE PARA CAUSAR EXPROPIACIÓN
+                    // Parametros: Nombre, Total=5, Prio=1, Deadline=1, InicioIO=0, DuracionIO=0
+                    System.out.println("\n--> [USER] !!! LANZANDO PROCESO URGENTE !!!");
+                    PCB pUrgente = new PCB("Proceso_Urgente", 5, 1, 1, 0, 0);
+                    planificador.agregarProceso(pUrgente);
+                    
                     break;
             }
 
-            // Tiempo suficiente para ver la simulación completa
-            Thread.sleep(10000);
+            // Damos tiempo para ver toda la simulación antes de cerrar
+            Thread.sleep(15000);
             
             System.out.println("\n=== FIN DE LA SIMULACIÓN ===");
-            System.exit(0); // Forzamos el cierre de hilos
+            System.exit(0);
 
         } catch (InterruptedException e) {
             e.printStackTrace();

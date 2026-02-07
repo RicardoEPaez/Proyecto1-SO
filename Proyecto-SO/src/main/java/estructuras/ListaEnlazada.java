@@ -40,13 +40,18 @@ public class ListaEnlazada<T> {
         if (inicio.getContenido().equals(dato)){
             inicio = inicio.getSiguiente();
             tamano--;
+            return; 
         }
         
         Nodo<T> actual = inicio;
+        // Verificamos que actual no sea null antes de empezar el ciclo
+        if (actual == null) return; 
+
         while (actual.getSiguiente() != null && !actual.getSiguiente().getContenido().equals(dato)){
             actual = actual.getSiguiente();
         }
         
+        // Si encontramos el nodo (es decir, el ciclo paró porque encontró el dato, no porque llegó al final)
         if (actual.getSiguiente() != null){
             actual.setSiguiente(actual.getSiguiente().getSiguiente());
             tamano--;

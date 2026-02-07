@@ -126,4 +126,48 @@ public class Planificador {
     public boolean hayProcesosListos() {
         return !colaListos.estaVacia();
     }
+    
+    public synchronized void manejarInterrupcion(TipoInterrupcion tipo, PCB proceso) {
+        
+        if (proceso == null) return;
+
+        switch (tipo) {
+            case FIN_PROCESO:
+                System.out.println("--- [PLANIFICADOR] Interrupción: Fin de Proceso (" + proceso.getNombre() + ") ---");
+                proceso.setEstado(Estado.TERMINADO);
+                this.terminarProceso(proceso);
+                break;
+
+            case TIEMPO_AGOTADO:
+                System.out.println("--- [PLANIFICADOR] Interrupción: Tiempo Agotado (" + proceso.getNombre() + ") ---");
+                // Vuelve a la cola de listos
+                this.expulsarProceso(proceso);
+                break;
+
+            case SOLICITUD_IO:
+                System.out.println("--- [PLANIFICADOR] Interrupción: Solicitud de E/S (" + proceso.getNombre() + ") ---");
+                proceso.setEstado(Estado.BLOQUEADO);
+                this.bloquearProceso(proceso);
+                break;
+                
+            case DESALOJO_POR_PRIORIDAD:
+                System.out.println("--- [PLANIFICADOR] Interrupción: Desalojo por Prioridad (" + proceso.getNombre() + ") ---");
+                // Vuelve a la cola de listos
+                this.expulsarProceso(proceso);
+                break;
+        }
+        // Al final, siempre intentamos cargar el siguiente proceso en el CPU
+        despacharSiguiente();
+    }
+    
+    private void despacharSiguiente() {
+         PCB siguiente = this.obtenerSiguiente();
+         if (siguiente != null) {
+             System.out.println("[PLANIFICADOR] Asignando CPU a: " + siguiente.getNombre());
+             cpu.asignarProceso(siguiente);
+         } else {
+             System.out.println("[PLANIFICADOR] CPU en espera (Idle)...");
+         }
+    }
+    
 }

@@ -20,7 +20,8 @@ public class PCB {
     private int cicloGeneracionIO;
     private int longitudIO;
     
-    // NUEVO: Para contar el tiempo de espera
+    private boolean yaHizoIO;
+// NUEVO: Para contar el tiempo de espera
     private int contadorIO; 
     
     // Planificacion
@@ -45,6 +46,8 @@ public class PCB {
         this.programCounter = 0;
         this.memoryAddressRegister = 0;
         this.instruccionesEjecutadas = 0;
+        
+        this.yaHizoIO = false;  
     }
             
     // Metodo para simular trabajo de CPU
@@ -58,10 +61,13 @@ public class PCB {
     
     // LÓGICA DE I/O: Detecta si toca hacer I/O en este ciclo
     public boolean necesitaIO() {
-        // Solo si el proceso tiene I/O configurado y está en el ciclo exacto
-        return (longitudIO > 0 && instruccionesEjecutadas == cicloGeneracionIO);
+         if (longitudIO > 0 && instruccionesEjecutadas == cicloGeneracionIO && !yaHizoIO) {
+            yaHizoIO = true; // Marcamos que ya solicitó el bloqueo
+            return true;
+        }
+        return false;
     }
-
+    
     public boolean haTerminado() {
         return instruccionesEjecutadas >= instruccionesTotales;
     }
