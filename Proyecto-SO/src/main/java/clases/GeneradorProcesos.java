@@ -9,7 +9,7 @@ import java.util.Random;
 /**
  * Clase utilitaria para la generación automática de procesos
  * Simula la carga de trabajo del satélite.
- * @author Home
+ * @author Ramon-Carrasquel
  */
 public class GeneradorProcesos {
     private static final Random random = new Random();
@@ -24,6 +24,10 @@ public class GeneradorProcesos {
     
     // Probabilidad de que un proceso tenga operaciones de I/O (70%)
     private static final double PROBABILIDAD_IO = 0.7; 
+    
+    // NUEVAS CONSTANTES DE TAMAÑO (En MB)
+    private static final int MIN_TAMANO = 64;  // Mínimo 64 MB
+    private static final int MAX_TAMANO = 512; // Máximo 512 MB
 
     /**
      * Genera un único proceso con parámetros aleatorios.
@@ -59,9 +63,13 @@ public class GeneradorProcesos {
         int margen = random.nextInt(50) + 10; // Margen entre 10 y 60 ciclos extra
         int deadline = instruccionesTotales + margen;
 
-        // Retornamos el nuevo PCB
-        // Constructor: nombre, instrucciones, prioridad, deadline, cicloIO, longitudIO
-        return new PCB(nombre, instruccionesTotales, prioridad, deadline, cicloGeneracionIO, longitudIO);
+        // 6. GENERAR TAMAÑO ALEATORIO
+        // Fórmula: Random entre Min y Max
+        int tamano = random.nextInt(MAX_TAMANO - MIN_TAMANO + 1) + MIN_TAMANO;
+
+        // 7. PASARLO AL CONSTRUCTOR
+        // Nota que agregamos 'tamano' al final de los paréntesis
+        return new PCB(nombre, instruccionesTotales, prioridad, deadline, cicloGeneracionIO, longitudIO, tamano);
     }
 
     /**

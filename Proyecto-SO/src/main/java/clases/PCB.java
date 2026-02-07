@@ -30,7 +30,10 @@ public class PCB {
     private int prioridad;
     private int deadline;
     
-    public PCB(String nombre, int instruccionesTotales, int prioridad, int deadline, int cicloGeneracion, int longitudIO){
+    private int tamano; // Nuevo atributo: Tamaño en MB o Páginas
+    private int direccionMemoria; // Simulación de puntero (índice en el array de RAM)
+    
+    public PCB(String nombre, int instruccionesTotales, int prioridad, int deadline, int cicloGeneracion, int longitudIO, int tamano){
         this.id = contadorIds++;
         this.nombre = nombre;
         this.instruccionesTotales = instruccionesTotales;
@@ -47,7 +50,11 @@ public class PCB {
         this.memoryAddressRegister = 0;
         this.instruccionesEjecutadas = 0;
         
-        this.yaHizoIO = false;  
+        this.yaHizoIO = false;
+        
+        this.tamano = tamano;
+        this.direccionMemoria = -1; // -1 significa que no está en RAM
+        
     }
             
     // Metodo para simular trabajo de CPU
@@ -99,6 +106,13 @@ public class PCB {
     
     // Getter útil para monitoreo
     public int getInstruccionesEjecutadas() { return instruccionesEjecutadas; }
+    
+    // GETTERS Y SETTERS NUEVOS
+    public int getTamano() { return tamano; }
+    public void setTamano(int tamano) { this.tamano = tamano; }
+    
+    public int getDireccionMemoria() { return direccionMemoria; }
+    public void setDireccionMemoria(int direccionMemoria) { this.direccionMemoria = direccionMemoria; }
     
     @Override
     public String toString() {
