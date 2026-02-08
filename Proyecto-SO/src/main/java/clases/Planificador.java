@@ -8,16 +8,15 @@ import estructuras.ColaPrioridad;
 import estructuras.ListaEnlazada;
 
 /**
- * El Planificador actua como el gestor de procesos del Sistema Operativo
- * Mantiene las colas de estados y decide qué proceso va al CPU
+ * El Planificador actua como el gestor de procesos del Sistema Operativo.
+ * Mantiene las colas de estados y decide qué proceso va al CPU.
+ * Sincronizado con el Reloj del sistema.
  * @author Ramon-Carrasquel
  */
 public class Planificador {
 
-    // Referencia a la estrategia (el algoritmo actual)
+    // Referencias
     private AlgoritmoPlanificacion algoritmoActual;
-
-    // Referencia al CPU (Necesaria para interrumpir en SRT)
     private CPU cpu;
 
     // Colas de Planificación
@@ -26,20 +25,20 @@ public class Planificador {
 
     // Gestión de Memoria
     private Memoria memoria;
-    private ListaEnlazada<PCB> colaSwap; // Disco virtual (Cola de espera para RAM)
+    private ListaEnlazada<PCB> colaSwap; // Disco virtual
 
     public Planificador() {
         this.colaListos = new ColaPrioridad<>();
         this.listaBloqueados = new ListaEnlazada<>();
-        this.algoritmoActual = new AlgoritmoFCFS(); // Algoritmo por defecto
+        this.algoritmoActual = new AlgoritmoFCFS(); // Default
         
-        // Inicialización de Memoria
         this.memoria = new Memoria();
         this.colaSwap = new ListaEnlazada<>();
     }
 
     public void setAlgoritmo(AlgoritmoPlanificacion nuevoAlgoritmo) {
         this.algoritmoActual = nuevoAlgoritmo;
+        // Reordenamos la cola actual con el nuevo criterio
         System.out.println("--- [SISTEMA] Algoritmo cambiado a: " + nuevoAlgoritmo.toString() + " ---");
     }
 
@@ -47,64 +46,42 @@ public class Planificador {
         this.cpu = cpu;
     }
 
-    public synchronized void agregarProceso(PCB proceso) {
-        // --- PASO 1: GESTIÓN DE MEMORIA ---
-        // Intentamos meter el proceso a la RAM
-        boolean pudoCargar = memoria.cargarEnMemoria(proceso);
+    // --- MÉTODOS PRINCIPALES ---
 
-        if (pudoCargar) {
-            // EL PROCESO ESTÁ EN RAM -> PASA A PLANIFICACIÓN DE CPU
-            
+    public synchronized void agregarProceso(PCB proceso) {
+        // 1. Intentamos cargar en RAM
+        if (memoria.cargarEnMemoria(proceso)) {
             System.out.println("--- [MEMORIA] Proceso " + proceso.getNombre() + " cargado en RAM ---");
             
-            // 1. Cambiamos estado y lo metemos en la cola de listos
+            // 2. Si entra, va a la cola de LISTOS
             proceso.setEstado(Estado.LISTO);
-            algoritmoActual.encolar(colaListos, proceso);
+            encolarEnListos(proceso); // Usamos el wrapper
 
-            System.out.println("--> [Planificador] Encolado: " + proceso.getNombre() + " | Algoritmo: " + algoritmoActual.toString());
-
-            // 2. Verificación de Expropiación
-            // Solo intentamos expropiar si el CPU está ocupado
-            if (cpu != null && !cpu.estaLibre()) {
-                PCB enEjecucion = cpu.getProcesoActual();
-
-                // Preguntamos al algoritmo: "¿El nuevo es más importante que el actual?"
-                if (enEjecucion != null && algoritmoActual.debeExpropiar(enEjecucion, proceso)) {
-                    System.out.println("    !!! [Planificador] EXPROPIACIÓN: " + proceso.getNombre() + " desplaza a " + enEjecucion.getNombre());
-                    cpu.interrumpir(); // Forzamos el context switch
-                }
-            }
+            // 3. Verificamos si debe expropiar al CPU (Context Switch)
+            verificarExpropiacion(proceso);
 
         } else {
-            // --- PASO 2: MEMORIA LLENA (SWAPPING) ---
-            System.out.println("--- [MEMORIA FULL] No cabe " + proceso.getNombre() + ". Iniciando protocolo de Swapping... ---");
-
-            // Llamamos al método que faltaba
+            // 4. Si no cabe, va al Disco (Swap)
+            System.out.println("--- [MEMORIA FULL] No cabe " + proceso.getNombre() + ". Enviando a Swap... ---");
             gestionarSwapping(proceso);
         }
     }
 
-    // Maneja los procesos que no caben en la RAM enviándolos al "Disco" (Swap).
     private void gestionarSwapping(PCB proceso) {
-        // Por ahora, simplemente lo agregamos a la cola de espera del disco.
         colaSwap.agregar(proceso);
-        
-        // Lo marcamos como "Suspendido" o simplemente esperamos.
-        // Nota: No cambiamos a BLOQUEADO porque no está esperando I/O, está esperando MEMORIA.
         System.out.println("    -> [SWAP] Proceso " + proceso.getNombre() + " encolado en disco virtual.");
     }
 
+    // --- MANEJO DE ESTADOS ---
+
     public synchronized PCB obtenerSiguiente() {
-        if (colaListos.estaVacia()) {
-            return null;
-        }
-        // Simplemente sacamos el primero. El algoritmo ya se encargó de ordenarlos.
+        if (colaListos.estaVacia()) return null;
         return colaListos.desencolar();
     }
 
     public synchronized void expulsarProceso(PCB proceso) {
         proceso.setEstado(Estado.LISTO);
-        algoritmoActual.encolar(colaListos, proceso);
+        encolarEnListos(proceso);
     }
 
     public synchronized void bloquearProceso(PCB proceso) {
@@ -112,139 +89,122 @@ public class Planificador {
         listaBloqueados.agregar(proceso);
     }
 
-    // Ahora debe liberar memoria cuando termina
     public synchronized void terminarProceso(PCB proceso) {
         System.out.println("[Planificador] Proceso finalizado: " + proceso.getNombre());
         
-        // 1. Liberamos el espacio en RAM
+        // 1. Liberar RAM
         memoria.liberarMemoria(proceso);
         
-        // 2. Revisamos si alguien de la cola de Swap puede entrar ahora que hay espacio
+        // 2. Revisar si alguien del Swap puede entrar
         revisarColaSwap();
     }
     
-    // Revisa si hay procesos esperando en disco y trata de meterlos a RAM
+    // --- GESTIÓN DE MEMORIA VIRTUAL (SWAP) ---
+
     private void revisarColaSwap() {
         if (!colaSwap.estaVacia()) {
-            // Intentamos cargar el primero de la fila
-            PCB candidato = colaSwap.get(0); // Asumiendo que tu lista tiene get(0)
+            PCB candidato = colaSwap.get(0); // Miramos el primero
             
-            // Intentamos meterlo de nuevo (recursividad indirecta segura)
+            // Intentamos subirlo a RAM
             if (memoria.cargarEnMemoria(candidato)) {
                 colaSwap.eliminar(candidato); // Lo sacamos del disco
                 System.out.println("    <- [SWAP IN] Proceso " + candidato.getNombre() + " movido de Disco a RAM.");
                 
-                // Lo agregamos a la lógica normal de CPU
-                // Llamamos a agregarProceso para que pase por la lógica de expropiación
-                // Pero como ya lo cargamos en memoria manualmente arriba, podemos simplificar:
+                // Lo ponemos listo
                 candidato.setEstado(Estado.LISTO);
-                algoritmoActual.encolar(colaListos, candidato);
+                encolarEnListos(candidato);
+                
+                // IMPORTANTE: Al volver del swap, también podría ser urgente.
+                // Verificamos si debe expropiar al actual.
+                verificarExpropiacion(candidato);
             }
         }
     }
 
-    // Este método se llama en cada ciclo del reloj del CPU 
-    // Revisa la lista de bloqueados, aumenta sus contadores y despierta a los que terminaron.
-    public synchronized void verificarBloqueados() {
-        if (listaBloqueados.estaVacia()) {
-            return;
-        }
+    // --- CÓDIGO DEL RELOJ Y BLOQUEOS ---
 
-        // Usamos una lista auxiliar para guardar los que deben salir
+    public synchronized void verificarBloqueados() {
+        if (listaBloqueados.estaVacia()) return;
+
         ListaEnlazada<PCB> procesosParaDespertar = new ListaEnlazada<>();
 
-        // 1. Recorremos todos los bloqueados
+        // 1. Aumentar contadores
         for (int i = 0; i < listaBloqueados.getTamano(); i++) {
             PCB p = listaBloqueados.get(i);
-
-            // Aumentamos su tiempo esperando I/O
             p.aumentarContadorIO();
-
-            // Verificamos si ya cumplio su tiempo de espera
             if (p.getContadorIO() >= p.getLongitudIO()) {
                 procesosParaDespertar.agregar(p);
             }
         }
 
-        // 2. Movemos los procesos listos de Bloqueados a la Cola de Listos
+        // 2. Despertar procesos
         for (int i = 0; i < procesosParaDespertar.getTamano(); i++) {
             PCB p = procesosParaDespertar.get(i);
-
-            // Lo sacamos de bloqueados
+            
             listaBloqueados.eliminar(p);
-
-            // Reseteamos su contador de I/O para futuras interrupciones
             p.reiniciarContadorIO();
-            
             System.out.println("--> [Planificador] I/O Completado: " + p.getNombre());
-            
-            // Verificamos si sigue teniendo memoria asignada (casi siempre sí, a menos que implementes swap agresivo)
-            if (p.getDireccionMemoria() != -1) {
-                 
-                 // --- Lógica de Expropiación al volver de I/O ---
-                 p.setEstado(Estado.LISTO);
-                 algoritmoActual.encolar(colaListos, p);
-                 
-                 // Verificamos si este proceso que despertó es más importante que el actual
-                 if (cpu != null && !cpu.estaLibre()) {
-                    PCB enEjecucion = cpu.getProcesoActual();
-                    if (enEjecucion != null && algoritmoActual.debeExpropiar(enEjecucion, p)) {
-                        System.out.println("    !!! [Planificador] EXPROPIACIÓN POR I/O: " + p.getNombre() + " desplaza a " + enEjecucion.getNombre());
-                        cpu.interrumpir(); 
-                    }
-                 }
 
-            } else {
-                 // Si por alguna razón perdió la memoria, tratamos de agregarlo como nuevo
-                 this.agregarProceso(p); 
+            // Regresa a la cola de listos
+            p.setEstado(Estado.LISTO);
+            encolarEnListos(p);
+
+            // Verificamos si este proceso que despertó es más importante que el actual
+            verificarExpropiacion(p);
+        }
+    }
+    
+    // --- MÉTODO CENTRALIZADO DE EXPROPIACIÓN ---
+    private void verificarExpropiacion(PCB nuevoProceso) {
+        if (cpu != null && !cpu.estaLibre()) {
+            PCB enEjecucion = cpu.getProcesoActual();
+            if (enEjecucion != null && algoritmoActual.debeExpropiar(enEjecucion, nuevoProceso)) {
+                System.out.println("    !!! [Planificador] EXPROPIACIÓN: " + nuevoProceso.getNombre() + " desplaza a " + enEjecucion.getNombre());
+                cpu.interrumpir(); 
             }
         }
     }
 
-    public boolean hayProcesosListos() {
-        return !colaListos.estaVacia();
-    }
+    // --- MANEJO DE INTERRUPCIONES DEL CPU ---
 
     public synchronized void manejarInterrupcion(TipoInterrupcion tipo, PCB proceso) {
-
         if (proceso == null) return;
 
         switch (tipo) {
             case FIN_PROCESO:
-                System.out.println("--- [PLANIFICADOR] Interrupción: Fin de Proceso (" + proceso.getNombre() + ") ---");
                 proceso.setEstado(Estado.TERMINADO);
                 this.terminarProceso(proceso);
                 break;
 
-            case TIEMPO_AGOTADO:
-                System.out.println("--- [PLANIFICADOR] Interrupción: Tiempo Agotado (" + proceso.getNombre() + ") ---");
-                // Vuelve a la cola de listos
+            case TIEMPO_AGOTADO: // Fin de Quantum
+            case DESALOJO_POR_PRIORIDAD: // SRT / Prioridad Apropiativa
                 this.expulsarProceso(proceso);
                 break;
 
             case SOLICITUD_IO:
-                System.out.println("--- [PLANIFICADOR] Interrupción: Solicitud de E/S (" + proceso.getNombre() + ") ---");
-                proceso.setEstado(Estado.BLOQUEADO);
                 this.bloquearProceso(proceso);
                 break;
-
-            case DESALOJO_POR_PRIORIDAD:
-                System.out.println("--- [PLANIFICADOR] Interrupción: Desalojo por Prioridad (" + proceso.getNombre() + ") ---");
-                // Vuelve a la cola de listos
-                this.expulsarProceso(proceso);
-                break;
         }
-        // Al final, siempre intentamos cargar el siguiente proceso en el CPU
+        
+        // Siempre intentamos llenar el CPU si quedó vacío
         despacharSiguiente();
     }
 
     private void despacharSiguiente() {
         PCB siguiente = this.obtenerSiguiente();
         if (siguiente != null) {
-            System.out.println("[PLANIFICADOR] Asignando CPU a: " + siguiente.getNombre());
+            // Nota: Aquí solo asignamos la referencia. 
+            // El CPU no ejecutará nada hasta que el Reloj haga notify()
             cpu.asignarProceso(siguiente);
-        } else {
-            System.out.println("[PLANIFICADOR] CPU en espera (Idle)...");
         }
+    }
+    
+    public boolean hayProcesosListos() {
+        return !colaListos.estaVacia();
+    }
+    
+    // --- WRAPPER ÚTIL ---
+    public void encolarEnListos(PCB proceso) {
+        algoritmoActual.encolar(this.colaListos, proceso);
     }
 }
