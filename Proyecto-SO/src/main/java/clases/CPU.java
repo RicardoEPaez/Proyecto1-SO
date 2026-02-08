@@ -17,8 +17,7 @@ public class CPU extends Thread {
     // Estado del CPU
     private boolean activo;
     
-    // Contadores de tiempo
-    private int cicloGlobal;     
+    // Contadores de tiempo 
     private int quantum;         
     private int contadorQuantum; 
     private boolean interrupcionInmediata = false;
@@ -27,7 +26,6 @@ public class CPU extends Thread {
     public CPU(int quantum, Planificador planificador) {
         this.quantum = quantum;
         this.planificador = planificador;
-        this.cicloGlobal = 0;
         this.contadorQuantum = 0;
         this.activo = true;
     }
@@ -79,27 +77,28 @@ public class CPU extends Thread {
     public void run() {
         while (activo) {
             try {
-                // 1. Reloj del Sistema (1 ciclo)
-                Thread.sleep(1000); 
-                cicloGlobal++;
-                
-                // Mantenemos la verificación de I/O sincronizada con el reloj
-                planificador.verificarBloqueados(); 
+                // 1. ESPERA PASIVA (Sincronización con Reloj)
+                // El CPU se queda "congelado" aquí.
+                // No consume recursos ni tiempo hasta que Reloj diga: cpu.notify()
+                synchronized (this) {
+                    wait(); 
+                }
 
-                // 2. Ejecución
+                // Cuando despierta, es porque pasó 1 segundo en el Reloj.
+
+                // 2. EJECUCIÓN (Si hay proceso cargado)
                 if (procesoActual != null) {
                     
                     // Ejecuta una instrucción
                     procesoActual.ejecutar();
                     contadorQuantum++;
 
-                    System.out.println("[CPU Reloj:" + cicloGlobal + "] Ejecutando " + procesoActual.getNombre() 
+                    System.out.println("[CPU] Ejecutando " + procesoActual.getNombre() 
                             + " | Instr: " + procesoActual.getInstruccionesEjecutadas() 
-                            + "/" + procesoActual.getInstruccionesTotales());
+                            + "/" + procesoActual.getInstruccionesTotales()
+                            + " | Quantum: " + contadorQuantum);
 
                     // --- DETECCIÓN DE EVENTOS (INTERRUPCIONES) ---
-                    // Fíjate cómo ahora el código es mucho más limpio.
-                    // Solo detectamos el "QUÉ" pasó, no decidimos el "CÓMO" solucionarlo.
 
                     // A. Fin de Proceso
                     if (procesoActual.haTerminado()) {
@@ -112,6 +111,7 @@ public class CPU extends Thread {
                     }
 
                     // C. Desalojo por Prioridad (Algoritmos Expropiativos)
+                    // Esto ocurre si el Planificador activó la bandera "interrumpir()"
                     else if (this.interrupcionInmediata) {
                         liberarYNotificar(TipoInterrupcion.DESALOJO_POR_PRIORIDAD);
                     }
@@ -122,9 +122,12 @@ public class CPU extends Thread {
                     }
                 } 
                 
-                // 3. Si el CPU está libre, intentamos pedir trabajo al Dispatcher
-                // (Esto cubre el caso de arranque o cuando la cola se vació y llegó algo nuevo)
+                // 3. IDLE / CARGA DE TRABAJO
+                // Si el CPU está libre, intentamos pedir trabajo al Dispatcher
                 if (procesoActual == null) {
+                    // Solo logueamos si está vacío para no llenar la consola
+                    // System.out.println("[CPU] Estado IDLE (Esperando procesos...)");
+                    
                     if (planificador.hayProcesosListos()) {
                         PCB siguiente = planificador.obtenerSiguiente();
                         asignarProceso(siguiente); // El Dispatcher carga el proceso
