@@ -143,5 +143,5 @@ public class CPU extends Thread {
     
     public void detenerCPU() {
         this.activo = false;
-    }
+    }   
 }
