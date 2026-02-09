@@ -130,13 +130,15 @@ public class PanelProcesador extends javax.swing.JPanel {
         setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CONTROL DE MISION", javax.swing.border.TitledBorder.CENTER, javax.swing.border.TitledBorder.TOP));
         setForeground(new java.awt.Color(255, 255, 255));
         setToolTipText("");
-        setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+        setLayout(null);
 
         comboAlgoritmos.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "FCFS", "RoundRobin", "SPN", "SRT" }));
-        add(comboAlgoritmos, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 80, 160, 30));
+        add(comboAlgoritmos);
+        comboAlgoritmos.setBounds(100, 80, 160, 30);
 
         spinnerQuantum.setModel(new javax.swing.SpinnerNumberModel(3, 1, null, 1));
-        add(spinnerQuantum, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 80, 100, 30));
+        add(spinnerQuantum);
+        spinnerQuantum.setBounds(280, 80, 100, 30);
 
         btnIniciar.setBackground(new java.awt.Color(0, 153, 51));
         btnIniciar.setText("INICIAR");
@@ -145,7 +147,8 @@ public class PanelProcesador extends javax.swing.JPanel {
                 btnIniciarActionPerformed(evt);
             }
         });
-        add(btnIniciar, new org.netbeans.lib.awtextra.AbsoluteConstraints(400, 70, 170, 50));
+        add(btnIniciar);
+        btnIniciar.setBounds(400, 70, 170, 50);
 
         btnDetener.setBackground(new java.awt.Color(204, 0, 0));
         btnDetener.setText("DETENER");
@@ -154,19 +157,23 @@ public class PanelProcesador extends javax.swing.JPanel {
                 btnDetenerActionPerformed(evt);
             }
         });
-        add(btnDetener, new org.netbeans.lib.awtextra.AbsoluteConstraints(580, 70, 170, 50));
+        add(btnDetener);
+        btnDetener.setBounds(580, 70, 170, 50);
 
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel1.setText("TIEMPO DE MISION: T+ 0 CICLOS");
-        add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 40, 190, 40));
+        add(jLabel1);
+        jLabel1.setBounds(20, 40, 190, 40);
 
         jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel2.setText("ALGORITMO");
-        add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 90, 90, -1));
+        add(jLabel2);
+        jLabel2.setBounds(20, 90, 90, 16);
 
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel3.setText("QUANTUM");
-        add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(290, 60, 80, 20));
+        add(jLabel3);
+        jLabel3.setBounds(290, 60, 80, 20);
 
         btnPaso.setBackground(new java.awt.Color(255, 204, 0));
         btnPaso.setForeground(new java.awt.Color(0, 0, 0));
@@ -176,7 +183,8 @@ public class PanelProcesador extends javax.swing.JPanel {
                 btnPasoActionPerformed(evt);
             }
         });
-        add(btnPaso, new org.netbeans.lib.awtextra.AbsoluteConstraints(760, 70, 160, 50));
+        add(btnPaso);
+        btnPaso.setBounds(760, 70, 160, 50);
 
         btnAbortar.setBackground(new java.awt.Color(153, 0, 0));
         btnAbortar.setText("EMERGENCY ABORT");
@@ -185,7 +193,8 @@ public class PanelProcesador extends javax.swing.JPanel {
                 btnAbortarActionPerformed(evt);
             }
         });
-        add(btnAbortar, new org.netbeans.lib.awtextra.AbsoluteConstraints(930, 70, 180, 50));
+        add(btnAbortar);
+        btnAbortar.setBounds(930, 70, 180, 50);
 
         jPanel1.setBackground(new java.awt.Color(51, 51, 51));
         jPanel1.setForeground(new java.awt.Color(255, 255, 255));
@@ -243,7 +252,7 @@ public class PanelProcesador extends javax.swing.JPanel {
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(lblCpuEstado, javax.swing.GroupLayout.DEFAULT_SIZE, 170, Short.MAX_VALUE)
                             .addComponent(lblCpuPC, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(155, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -270,7 +279,8 @@ public class PanelProcesador extends javax.swing.JPanel {
                 .addGap(143, 143, 143))
         );
 
-        add(jPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 140, 440, 190));
+        add(jPanel1);
+        jPanel1.setBounds(10, 140, 440, 190);
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnIniciarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIniciarActionPerformed
