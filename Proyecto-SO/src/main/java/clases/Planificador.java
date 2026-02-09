@@ -48,7 +48,7 @@ public class Planificador {
 
     // --- MÉTODOS PRINCIPALES ---
 
-    public synchronized void agregarProceso(PCB proceso) {
+    public synchronized boolean agregarProceso(PCB proceso) {
         // 1. Intentamos cargar en RAM
         if (memoria.cargarEnMemoria(proceso)) {
             System.out.println("--- [MEMORIA] Proceso " + proceso.getNombre() + " cargado en RAM ---");
@@ -59,11 +59,18 @@ public class Planificador {
 
             // 3. Verificamos si debe expropiar al CPU (Context Switch)
             verificarExpropiacion(proceso);
+            
+            // Avisamos al botón que fue un éxito
+            return true;
 
         } else {
             // 4. Si no cabe, va al Disco (Swap)
             System.out.println("--- [MEMORIA FULL] No cabe " + proceso.getNombre() + ". Enviando a Swap... ---");
             gestionarSwapping(proceso);
+            
+            // NUEVO: También retornamos true, porque el proceso entró al sistema (aunque sea en disco).
+            // Si retornara false, el botón diría "Error" aunque el proceso esté en Swap.
+            return true;
         }
     }
 

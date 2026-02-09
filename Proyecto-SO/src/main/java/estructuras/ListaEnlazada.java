@@ -82,4 +82,18 @@ public class ListaEnlazada<T> {
     public Nodo<T> getInicio(){
         return inicio;
     }
+    
+    // Método para la GUI: Devuelve un arreglo simple con los elementos
+    public Object[] toArray() {
+        Object[] arreglo = new Object[tamano];
+        Nodo<T> actual = inicio;
+        
+        for (int i = 0; i < tamano; i++) {
+            if (actual != null) {
+                arreglo[i] = actual.getContenido();
+                actual = actual.getSiguiente();
+            }
+        }
+        return arreglo;
+    }
 }
