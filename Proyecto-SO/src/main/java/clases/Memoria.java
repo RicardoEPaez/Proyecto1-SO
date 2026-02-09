@@ -60,5 +60,13 @@ public class Memoria {
         }
     }
     
+    // --- MÉTODOS PARA LA INTERFAZ GRÁFICA (GUI) ---
+
+    // Permite a la GUI ver el estado de los bloques de memoria
+    public PCB[] getParticiones() {
+        return particiones;
+    }
+    
+    // Permite a la GUI saber cuánto espacio libre queda para mostrarlo en un Label
     public int getMemoriaDisponible() { return memoriaDisponible; }
 }
