@@ -46,20 +46,54 @@ public class PanelProcesador extends javax.swing.JPanel {
      * Actualiza los textos del Panel CPU usando tu clase PCB.
      */
     private void actualizarLabelsCPU() {
-        // --- 1. SI ESTÁ EN MODO ABORTADO (PRIORIDAD MÁXIMA) ---
+        
+        // ---------------------------------------------------------
+        // 1. CHEQUEO DE PRIORIDAD MÁXIMA: ABORTADO
+        // ---------------------------------------------------------
         if (sistemaAbortado) {
             lblCpuNombre.setText("---");
             lblCpuId.setText("--");
             lblCpuPC.setText("0 / 0");
             lblCpuEstado.setText("!! ABORTADO !!");
             lblCpuEstado.setForeground(java.awt.Color.RED);
-            return; 
+            return; // Nos vamos
+        }
+        
+        // ---------------------------------------------------------
+        // 2. CHEQUEO DE LÍMITE DE TIEMPO (NUEVO)
+        // ---------------------------------------------------------
+        // Verificamos si llegamos a 50 ciclos.
+        // Usamos el operador ternario para evitar error si reloj es null
+        int ciclos = (relojSistema != null) ? relojSistema.getCicloActual() : 0;
+        
+        if (ciclos >= 50) {
+            // A. Detener Reloj (Backend)
+            if (relojSistema != null) {
+                relojSistema.detener();
+                relojSistema = null;
+                System.out.println(">>> SIMULACIÓN FINALIZADA (50 Ciclos)");
+            }
+            
+            // B. Detener Timer Visual (Frontend)
+            if (timerSimulacion != null) {
+                timerSimulacion.stop();
+            }
+            
+            // C. Avisar al usuario
+            lblCpuEstado.setText("SIMULACIÓN TERMINADA");
+            lblCpuEstado.setForeground(java.awt.Color.BLUE);
+            btnIniciar.setEnabled(true); // Habilitar botón para reiniciar si se desea
+            
+            return; // Nos vamos, no hay nada más que pintar
         }
 
+        // ---------------------------------------------------------
+        // 3. A PARTIR DE AQUÍ, TU CÓDIGO ORIGINAL INTACTO
+        // ---------------------------------------------------------
+        
         clases.PCB proceso = cpu.getProcesoActual();
 
-        // --- 2. SI LA CPU ESTÁ VACÍA (ESTADO ESPERANDO) ---
-        // ESTA ES LA CORRECCIÓN: Preguntamos esto ANTES de mirar el reloj.
+        // --- SI LA CPU ESTÁ VACÍA (ESTADO ESPERANDO) ---
         if (proceso == null) {
             lblCpuNombre.setText("Nombre del Proceso: ---");
             lblCpuId.setText("ID del Proceso: --");
@@ -67,20 +101,15 @@ public class PanelProcesador extends javax.swing.JPanel {
             
             lblCpuEstado.setText("ESTADO: ESPERANDO");
             lblCpuEstado.setForeground(java.awt.Color.WHITE);
-            return; // Salimos aquí para que no se ponga en Pausado
+            return; 
         }
 
-        // --- 3. SI HAY PROCESO PERO NO HAY RELOJ (ESTADO PAUSADO) ---
+        // --- SI HAY PROCESO PERO NO HAY RELOJ (ESTADO PAUSADO) ---
         if (relojSistema == null) {
-            // Mostramos los datos congelados del proceso
             lblCpuNombre.setText("Nombre del Proceso: " + proceso.getNombre());
             lblCpuId.setText("ID del Proceso: " + proceso.getId());
             lblCpuPC.setText("Contador: " + proceso.getProgramCounter() + " / " + proceso.getInstruccionesTotales());
             
-            // Si acabamos de dar un paso manual, quizás quieras mantener el texto amarillo,
-            // pero por defecto pondremos PAUSADO.
-            
-            // Truco visual: Si el texto actual YA ES "PASO EJECUTADO", no lo sobrescribas con "PAUSADO"
             if (!lblCpuEstado.getText().equals("PASO EJECUTADO")) {
                 lblCpuEstado.setText(":: PAUSADO ::");
                 lblCpuEstado.setForeground(java.awt.Color.ORANGE);
@@ -88,7 +117,7 @@ public class PanelProcesador extends javax.swing.JPanel {
             return; 
         }
 
-        // --- 4. SI HAY PROCESO Y RELOJ CORRIENDO (ESTADO EJECUTANDO) ---
+        // --- SI HAY PROCESO Y RELOJ CORRIENDO (ESTADO EJECUTANDO) ---
         lblCpuNombre.setText("Nombre del Proceso: " + proceso.getNombre());
         lblCpuId.setText("ID del Proceso: " + proceso.getId());
         lblCpuPC.setText("Contador: " + proceso.getProgramCounter() + " / " + proceso.getInstruccionesTotales());
@@ -285,11 +314,32 @@ public class PanelProcesador extends javax.swing.JPanel {
 
     private void btnIniciarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIniciarActionPerformed
         sistemaAbortado = false;
+        
+        // --- NUEVO BLOQUE: CARGA DE 20 PROCESOS ---
+    // Esto simplemente llena la memoria antes de que el CPU empiece a trabajar.
+    // No toca el reloj, ni el timer, ni la gráfica. Solo añade datos.
+    System.out.println(">>> Generando carga inicial de 20 procesos...");
+    
+    for (int i = 0; i < 20; i++) {
+        // Generamos un proceso al azar
+        clases.PCB proceso = clases.GeneradorProcesos.generarProcesoAleatorio();
+        // Se lo entregamos al planificador (Kernel)
+        planificador.agregarProceso(proceso);
+    }
+    
+    // -------------------------------------------
     // 1. Arrancar el Reloj del CPU (Tu código de siempre)
     
     if (relojSistema == null || !relojSistema.isAlive()) {
         relojSistema = new clases.Reloj(planificador, cpu);
         relojSistema.start();
+    }
+    
+    // 3. RECOMENDADO: Asegurar que la pantalla se mueva
+    // Si alguna vez le diste al botón "Detener", el timer visual se paró.
+    // Esto lo vuelve a encender para que veas las barras moverse.
+    if (timerSimulacion != null && !timerSimulacion.isRunning()) {
+        timerSimulacion.start();
     }
     }//GEN-LAST:event_btnIniciarActionPerformed
        

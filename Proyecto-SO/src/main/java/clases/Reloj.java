@@ -48,4 +48,6 @@ public class Reloj extends Thread{
     public void detener() {
         this.activo = false;
     }
+    
+    public int getCicloActual() { return cicloActual; }
 }
