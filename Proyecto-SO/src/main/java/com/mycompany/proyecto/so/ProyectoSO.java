@@ -29,20 +29,37 @@ public class ProyectoSO extends javax.swing.JFrame {
         
         // 2. CONFIGURACIÓN DE LA VENTANA
         this.setTitle("Simulador SO - NASA Mode");
-        this.setSize(1100, 700); // Tamaño grande
+        this.setSize(1200, 700); // <-- Le subí un poco el ancho (de 1100 a 1200) para que quepan los dos paneles
         this.setLocationRelativeTo(null); // Centrar en pantalla
-        this.setLayout(new BorderLayout()); // Para que el panel ocupe todo el espacio
+        
+        // ESTA LINEA ES CLAVE: Define el esquema de 5 zonas
+        this.setLayout(new BorderLayout()); 
         
         // 3. INICIALIZAR EL BACKEND (Cerebro)
         iniciarSistemaOperativo();
         
-        // 4. INICIALIZAR EL FRONTEND (Tu Panel)
+        // ---------------------------------------------------------
+        // A. AGREGAR EL PANEL CENTRAL (El simulador visual)
+        // ---------------------------------------------------------
         panelVisual = new PanelProcesador(cpu, planificador);
-        
-        // 5. AGREGAR EL PANEL A LA VENTANA
         this.add(panelVisual, BorderLayout.CENTER);
         
-        // 6. Refrescar para asegurar que se vea
+        // ---------------------------------------------------------
+        // B. AGREGAR EL PANEL IZQUIERDO (El creador de procesos)
+        // ---------------------------------------------------------
+        // Creamos una instancia de tu archivo PanelCreador.java
+        PanelCreador panelCreador = new PanelCreador();
+        
+        // ¡IMPORTANTE! Le pasamos el 'planificador' que creamos en el paso 3.
+        // Si no hacemos esto, los botones de este panel no sabrán a dónde mandar los procesos.
+        panelCreador.setPlanificador(planificador); 
+        
+        // Lo agregamos a la izquierda (WEST)
+        this.add(panelCreador, BorderLayout.WEST);
+        
+        // ---------------------------------------------------------
+        
+        // 6. Refrescar para asegurar que se vea todo
         this.revalidate();
         this.repaint();
     }
