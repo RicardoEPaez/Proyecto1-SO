@@ -55,7 +55,7 @@ public class ProyectoSO extends javax.swing.JFrame {
         panelCreador.setPlanificador(planificador); 
         
         // Lo agregamos a la izquierda (WEST)
-        this.add(panelCreador, BorderLayout.WEST);
+        this.add(panelCreador, BorderLayout.SOUTH);
         
         // ---------------------------------------------------------
         
