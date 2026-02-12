@@ -20,6 +20,41 @@ public class PanelColas extends javax.swing.JPanel {
      */
     public PanelColas() {
         initComponents();
+
+    // 1. MOVER TABLAS A LA IZQUIERDA
+    // Usamos FlowLayout alineado a la IZQUIERDA (LEFT).
+    // Los números (20, 10) son el espacio (margen) a la izquierda y arriba.
+    // Si quieres pegarlas más al borde, baja el 20 a 5 o 0.
+    this.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 20, 10));
+    
+    // 2. CENTRAR TÍTULOS DE LAS TABLAS
+    // Esto "pega" el título al borde y lo fuerza al CENTRO.
+    
+    // --- Tabla Izquierda (Listos) ---
+    if (jScrollPane1 != null) {
+        jScrollPane1.setBorder(javax.swing.BorderFactory.createTitledBorder(
+            null, 
+            "COLA DE LISTOS (Ready)", 
+            javax.swing.border.TitledBorder.CENTER, // <--- AQUÍ ESTÁ EL TRUCO (CENTER)
+            javax.swing.border.TitledBorder.TOP, 
+            new java.awt.Font("Segoe UI", 1, 12)
+        ));
+        // Aseguramos que tenga un tamaño base para que no se encoja
+        jScrollPane1.setPreferredSize(new java.awt.Dimension(400, 250));
+    }
+
+    // --- Tabla Derecha (Bloqueados) ---
+    if (jScrollPane2 != null) {
+        jScrollPane2.setBorder(javax.swing.BorderFactory.createTitledBorder(
+            null, 
+            "COLA DE BLOQUEADOS (Waiting)", 
+            javax.swing.border.TitledBorder.CENTER, // Centrado también para que combinen
+            javax.swing.border.TitledBorder.TOP, 
+            new java.awt.Font("Segoe UI", 1, 12)
+        ));
+        // Tamaño base igual a la otra
+        jScrollPane2.setPreferredSize(new java.awt.Dimension(400, 250));
+    }
     }
     
     public void setPlanificador(Planificador planificador) {
@@ -76,16 +111,10 @@ public class PanelColas extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jLabel1 = new javax.swing.JLabel();
-        jLabel2 = new javax.swing.JLabel();
         jScrollPane1 = new javax.swing.JScrollPane();
         tbListos = new javax.swing.JTable();
         jScrollPane2 = new javax.swing.JScrollPane();
         tbBloqueados = new javax.swing.JTable();
-
-        jLabel1.setText("COLA DE LISTOS (Ready)");
-
-        jLabel2.setText("COLA DE BLOQUEADOS (Waiting)");
 
         tbListos.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -112,37 +141,25 @@ public class PanelColas extends javax.swing.JPanel {
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(0, 7, Short.MAX_VALUE)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 378, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
+                .addGap(0, 0, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 390, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 452, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
-            .addGroup(layout.createSequentialGroup()
-                .addGap(125, 125, 125)
-                .addComponent(jLabel1)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jLabel2)
-                .addGap(119, 119, 119))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap(14, Short.MAX_VALUE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel1, javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jLabel2, javax.swing.GroupLayout.Alignment.TRAILING))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 278, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 275, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap())
+                .addContainerGap(34, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 203, Short.MAX_VALUE)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
+                .addGap(81, 81, 81))
         );
     }// </editor-fold>//GEN-END:initComponents
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTable tbBloqueados;
