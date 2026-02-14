@@ -5,6 +5,8 @@
 package com.mycompany.proyecto.so;
 import clases.PCB;
 import clases.Planificador;
+import estructuras.ColaPrioridad;
+import estructuras.ListaEnlazada;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.JOptionPane;
 /**
@@ -61,43 +63,57 @@ public class PanelColas extends javax.swing.JPanel {
         this.planificadorRef = planificador;
     }
     
-    // Este método será llamado por el Timer de la ventana principal cada segundo
-    public void actualizarColas(estructuras.ColaPrioridad<PCB> colaListos, estructuras.ListaEnlazada<PCB> listaBloq) {
+    public void actualizarColas(ColaPrioridad<PCB> colaListos, ListaEnlazada<PCB> listaBloq) {
         
-        // --- 1. PINTAR TABLA DE LISTOS ---
+        // =========================================================
+        // 1. PINTAR TABLA DE LISTOS (Usando toArray)
+        // =========================================================
         DefaultTableModel modeloListos = (DefaultTableModel) tbListos.getModel();
         modeloListos.setRowCount(0); // Limpiar tabla vieja
         
-        // Usamos tu método toArray()
-        Object[] arrayListos = colaListos.toArray();
-        
-        for (Object obj : arrayListos) {
-            if (obj != null) {
-                PCB p = (PCB) obj; // Casting de Object a PCB
-                modeloListos.addRow(new Object[]{
-                    p.getId(),
-                    p.getNombre(),
-                    p.getPrioridad(),
-                    p.getTamano() + " MB"
-                });
+        if (colaListos != null && !colaListos.estaVacia()) {
+            // Convertimos la cola a un arreglo de Objetos
+            Object[] arregloListos = colaListos.toArray();
+            
+            for (Object obj : arregloListos) {
+                if (obj != null) {
+                    PCB p = (PCB) obj; // Convertimos (Casting) el Object a PCB
+                    
+                    modeloListos.addRow(new Object[]{
+                        p.getId(),        // O p.getId() según tu clase PCB
+                        p.getNombre(),
+                        p.getPrioridad(),
+                        p.getTamano()+ " MB"
+                    });
+                }
             }
         }
         
-        // --- 2. PINTAR TABLA DE BLOQUEADOS ---
+        // =========================================================
+        // 2. PINTAR TABLA DE BLOQUEADOS (Usando toArray)
+        // =========================================================
         DefaultTableModel modeloBloq = (DefaultTableModel) tbBloqueados.getModel();
         modeloBloq.setRowCount(0); // Limpiar tabla vieja
         
-        Object[] arrayBloq = listaBloq.toArray();
-        
-        for (Object obj : arrayBloq) {
-            if (obj != null) {
-                PCB p = (PCB) obj;
-                modeloBloq.addRow(new Object[]{
-                    p.getId(),
-                    p.getNombre(),
-                    "I/O", // Motivo
-                    p.getContadorIO() // Ciclos que lleva esperando
-                });
+        if (listaBloq != null) {
+            // Asumo que tu ListaEnlazada también tiene toArray(). 
+            // Si no lo tiene, avísame, pero normalmente lo tienen igual.
+            Object[] arregloBloq = listaBloq.toArray(); 
+            
+            for (Object obj : arregloBloq) {
+                if (obj != null) {
+                    PCB p = (PCB) obj; // Casting
+                    
+                    // Calculamos cuánto le falta para salir del I/O
+                    int restante = p.getLongitudIO() - p.getContadorIO();
+                    
+                    modeloBloq.addRow(new Object[]{
+                        p.getId(),      // O p.getId()
+                        p.getNombre(),
+                        "I/O",           // Motivo
+                        restante         // Ciclos restantes
+                    });
+                }
             }
         }
     }

@@ -9,6 +9,9 @@ import clases.PCB;
 import clases.Planificador;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.Timer;
 
 /**
  * Interfaz Grafica que controla y visualiza el estado del CPU, memoria y procesos en tiempo real
@@ -38,7 +41,9 @@ public class ProyectoSO extends javax.swing.JFrame {
 
         // Iniciar lógica del SO (CPU, Memoria, etc)
         iniciarSistemaOperativo();
-
+        
+        iniciarRelojVisual();
+        
         // =========================================================
         // A. ZONA NORTE: PROCESADOR (Panel Gris)
         // =========================================================
@@ -117,9 +122,31 @@ public class ProyectoSO extends javax.swing.JFrame {
         // Arrancamos el hilo del CPU (IMPORTANTE: Si no, no funciona "isAlive")
         cpu.start();
         
-        // (Opcional) Agregamos un proceso de prueba para que no salga vacío al inicio
-        PCB prueba = new PCB("System Check", 50, 1, 0, 0, 0, 32);
-        planificador.agregarProceso(prueba);
+    }
+    
+  
+    public void iniciarRelojVisual() {
+        // Cada 1000 milisegundos (1 segundo) se ejecuta el código de adentro
+        Timer relojSistema = new Timer(1000, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                actualizarTablas(); // Llama al método de abajo
+            }
+        });
+        relojSistema.start(); // ¡START AUTOMÁTICO!
+    }
+    
+    public void actualizarTablas() {
+        // Si los paneles existen y hay datos en el planificador...
+        if (panelColas != null && planificador != null) {
+            // ... MANDAMOS LOS DATOS A LA TABLA
+            panelColas.actualizarColas(
+                planificador.getColaListos(), 
+                planificador.getColaBloqueados()
+            );
+        }
+        // Refrescar pantalla
+        this.repaint();
     }
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents

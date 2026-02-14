@@ -214,4 +214,12 @@ public class Planificador {
     public void encolarEnListos(PCB proceso) {
         algoritmoActual.encolar(this.colaListos, proceso);
     }
+    
+    public ColaPrioridad<PCB> getColaListos() {
+        return this.colaListos; 
+    }
+
+    public ListaEnlazada<PCB> getColaBloqueados() {
+        return this.listaBloqueados; 
+    }
 }
