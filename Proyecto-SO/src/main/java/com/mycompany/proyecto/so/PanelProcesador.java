@@ -1,0 +1,421 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
+ */
+package com.mycompany.proyecto.so;
+
+import clases.CPU;
+import clases.Planificador;
+
+
+/**
+ *
+ * @author ricar
+ */
+public class PanelProcesador extends javax.swing.JPanel {
+
+    private final CPU cpu;
+    private final Planificador planificador;
+    private boolean sistemaAbortado = false;
+    private clases.Reloj relojSistema;
+    private javax.swing.Timer timerSimulacion;
+    
+    /**
+     * Creates new form PanelProcesador
+     */
+    public PanelProcesador(CPU cpu, Planificador planificador) {
+        this.cpu = cpu;
+        this.planificador = planificador;
+        initComponents();
+        // En el Constructor:
+        javax.swing.Timer timer = new javax.swing.Timer(100, new java.awt.event.ActionListener() {
+        @Override
+        public void actionPerformed(java.awt.event.ActionEvent e) {
+            actualizarLabelsCPU(); // <--- ¡AQUÍ!
+        
+        repaint();
+    }
+    });
+        timer.start();
+    }
+
+    /**
+     * Actualiza los textos del Panel CPU usando tu clase PCB.
+     */
+    /**
+     * Actualiza los textos del Panel CPU usando tu clase PCB.
+     */
+    private void actualizarLabelsCPU() {
+        
+        // ---------------------------------------------------------
+        // 1. CHEQUEO DE PRIORIDAD MÁXIMA: ABORTADO
+        // ---------------------------------------------------------
+        if (sistemaAbortado) {
+            lblCpuNombre.setText("---");
+            lblCpuId.setText("--");
+            lblCpuPC.setText("0 / 0");
+            lblCpuEstado.setText("!! ABORTADO !!");
+            lblCpuEstado.setForeground(java.awt.Color.RED);
+            return; // Nos vamos
+        }
+        
+        // ---------------------------------------------------------
+        // 2. CHEQUEO DE LÍMITE DE TIEMPO (NUEVO)
+        // ---------------------------------------------------------
+        // Verificamos si llegamos a 50 ciclos.
+        // Usamos el operador ternario para evitar error si reloj es null
+        int ciclos = (relojSistema != null) ? relojSistema.getCicloActual() : 0;
+        
+        if (ciclos >= 50) {
+            // A. Detener Reloj (Backend)
+            if (relojSistema != null) {
+                relojSistema.detener();
+                relojSistema = null;
+                System.out.println(">>> SIMULACIÓN FINALIZADA (50 Ciclos)");
+            }
+            
+            // B. Detener Timer Visual (Frontend)
+            if (timerSimulacion != null) {
+                timerSimulacion.stop();
+            }
+            
+            // C. Avisar al usuario
+            lblCpuEstado.setText("SIMULACIÓN TERMINADA");
+            lblCpuEstado.setForeground(java.awt.Color.BLUE);
+            btnIniciar.setEnabled(true); // Habilitar botón para reiniciar si se desea
+            
+            return; // Nos vamos, no hay nada más que pintar
+        }
+
+        // ---------------------------------------------------------
+        // 3. A PARTIR DE AQUÍ, TU CÓDIGO ORIGINAL INTACTO
+        // ---------------------------------------------------------
+        
+        clases.PCB proceso = cpu.getProcesoActual();
+
+        // --- SI LA CPU ESTÁ VACÍA (ESTADO ESPERANDO) ---
+        if (proceso == null) {
+            lblCpuNombre.setText("Nombre del Proceso: ---");
+            lblCpuId.setText("ID del Proceso: --");
+            lblCpuPC.setText("Contador: 0 / 0");
+            
+            lblCpuEstado.setText("ESTADO: ESPERANDO");
+            lblCpuEstado.setForeground(java.awt.Color.WHITE);
+            return; 
+        }
+
+        // --- SI HAY PROCESO PERO NO HAY RELOJ (ESTADO PAUSADO) ---
+        if (relojSistema == null) {
+            lblCpuNombre.setText("Nombre del Proceso: " + proceso.getNombre());
+            lblCpuId.setText("ID del Proceso: " + proceso.getId());
+            lblCpuPC.setText("Contador: " + proceso.getProgramCounter() + " / " + proceso.getInstruccionesTotales());
+            
+            if (!lblCpuEstado.getText().equals("PASO EJECUTADO")) {
+                lblCpuEstado.setText(":: PAUSADO ::");
+                lblCpuEstado.setForeground(java.awt.Color.ORANGE);
+            }
+            return; 
+        }
+
+        // --- SI HAY PROCESO Y RELOJ CORRIENDO (ESTADO EJECUTANDO) ---
+        lblCpuNombre.setText("Nombre del Proceso: " + proceso.getNombre());
+        lblCpuId.setText("ID del Proceso: " + proceso.getId());
+        lblCpuPC.setText("Contador: " + proceso.getProgramCounter() + " / " + proceso.getInstruccionesTotales());
+        
+        lblCpuEstado.setText("ESTADO: EJECUTANDO");
+        lblCpuEstado.setForeground(java.awt.Color.GREEN);
+    }
+
+  
+   
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
+     */
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        comboAlgoritmos = new javax.swing.JComboBox<>();
+        spinnerQuantum = new javax.swing.JSpinner();
+        btnIniciar = new javax.swing.JButton();
+        btnDetener = new javax.swing.JButton();
+        jLabel1 = new javax.swing.JLabel();
+        jLabel2 = new javax.swing.JLabel();
+        jLabel3 = new javax.swing.JLabel();
+        btnPaso = new javax.swing.JButton();
+        btnAbortar = new javax.swing.JButton();
+        jPanel1 = new javax.swing.JPanel();
+        jLabel4 = new javax.swing.JLabel();
+        lblCpuEstado = new javax.swing.JLabel();
+        jLabel5 = new javax.swing.JLabel();
+        lblCpuNombre = new javax.swing.JLabel();
+        jLabel6 = new javax.swing.JLabel();
+        lblCpuId = new javax.swing.JLabel();
+        jLabel7 = new javax.swing.JLabel();
+        lblCpuPC = new javax.swing.JLabel();
+
+        setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CONTROL DE MISION", javax.swing.border.TitledBorder.CENTER, javax.swing.border.TitledBorder.TOP));
+        setForeground(new java.awt.Color(255, 255, 255));
+        setToolTipText("");
+        setLayout(null);
+
+        comboAlgoritmos.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "FCFS", "RoundRobin", "SPN", "SRT" }));
+        add(comboAlgoritmos);
+        comboAlgoritmos.setBounds(100, 80, 160, 30);
+
+        spinnerQuantum.setModel(new javax.swing.SpinnerNumberModel(3, 1, null, 1));
+        add(spinnerQuantum);
+        spinnerQuantum.setBounds(280, 80, 100, 30);
+
+        btnIniciar.setBackground(new java.awt.Color(0, 153, 51));
+        btnIniciar.setText("INICIAR");
+        btnIniciar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnIniciarActionPerformed(evt);
+            }
+        });
+        add(btnIniciar);
+        btnIniciar.setBounds(400, 70, 170, 50);
+
+        btnDetener.setBackground(new java.awt.Color(204, 0, 0));
+        btnDetener.setText("DETENER");
+        btnDetener.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnDetenerActionPerformed(evt);
+            }
+        });
+        add(btnDetener);
+        btnDetener.setBounds(580, 70, 170, 50);
+
+        jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabel1.setText("TIEMPO DE MISION: T+ 0 CICLOS");
+        add(jLabel1);
+        jLabel1.setBounds(20, 40, 190, 40);
+
+        jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabel2.setText("ALGORITMO");
+        add(jLabel2);
+        jLabel2.setBounds(20, 90, 90, 16);
+
+        jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabel3.setText("QUANTUM");
+        add(jLabel3);
+        jLabel3.setBounds(290, 60, 80, 20);
+
+        btnPaso.setBackground(new java.awt.Color(255, 204, 0));
+        btnPaso.setText("PASO A PASO");
+        btnPaso.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnPasoActionPerformed(evt);
+            }
+        });
+        add(btnPaso);
+        btnPaso.setBounds(760, 70, 160, 50);
+
+        btnAbortar.setBackground(new java.awt.Color(153, 0, 0));
+        btnAbortar.setText("EMERGENCY ABORT");
+        btnAbortar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnAbortarActionPerformed(evt);
+            }
+        });
+        add(btnAbortar);
+        btnAbortar.setBounds(930, 70, 180, 50);
+
+        jPanel1.setBackground(new java.awt.Color(51, 51, 51));
+        jPanel1.setForeground(new java.awt.Color(255, 255, 255));
+
+        jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabel4.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel4.setText("Estado CPU: ");
+
+        lblCpuEstado.setText("Esperando");
+
+        jLabel5.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabel5.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel5.setText("Nombre del Proceso");
+
+        lblCpuNombre.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lblCpuNombre.setForeground(new java.awt.Color(255, 255, 255));
+        lblCpuNombre.setText("---");
+
+        jLabel6.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabel6.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel6.setText("ID del Proceso");
+
+        lblCpuId.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lblCpuId.setForeground(new java.awt.Color(255, 255, 255));
+        lblCpuId.setText("--");
+
+        jLabel7.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabel7.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel7.setText("Contador");
+
+        lblCpuPC.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lblCpuPC.setForeground(new java.awt.Color(255, 255, 255));
+        lblCpuPC.setText("0");
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(11, 11, 11)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGap(24, 24, 24)
+                                .addComponent(lblCpuPC, javax.swing.GroupLayout.PREFERRED_SIZE, 170, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGap(18, 18, 18)
+                                .addComponent(lblCpuEstado, javax.swing.GroupLayout.PREFERRED_SIZE, 170, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 121, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 101, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(lblCpuId, javax.swing.GroupLayout.PREFERRED_SIZE, 118, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(lblCpuNombre, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addContainerGap(165, Short.MAX_VALUE))
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                .addGap(11, 11, 11)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel5)
+                    .addComponent(lblCpuNombre, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel6)
+                    .addComponent(lblCpuId, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel7)
+                    .addComponent(lblCpuPC, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel4)
+                    .addComponent(lblCpuEstado, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(159, 159, 159))
+        );
+
+        add(jPanel1);
+        jPanel1.setBounds(10, 140, 450, 140);
+    }// </editor-fold>//GEN-END:initComponents
+
+    private void btnIniciarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIniciarActionPerformed
+        sistemaAbortado = false;
+        
+        // --- NUEVO BLOQUE: CARGA DE 20 PROCESOS ---
+    // Esto simplemente llena la memoria antes de que el CPU empiece a trabajar.
+    // No toca el reloj, ni el timer, ni la gráfica. Solo añade datos.
+    System.out.println(">>> Generando carga inicial de 20 procesos...");
+    
+    for (int i = 0; i < 20; i++) {
+        // Generamos un proceso al azar
+        clases.PCB proceso = clases.GeneradorProcesos.generarProcesoAleatorio();
+        // Se lo entregamos al planificador (Kernel)
+        planificador.agregarProceso(proceso);
+    }
+    
+    // -------------------------------------------
+    // 1. Arrancar el Reloj del CPU (Tu código de siempre)
+    
+    if (relojSistema == null || !relojSistema.isAlive()) {
+        relojSistema = new clases.Reloj(planificador, cpu);
+        relojSistema.start();
+    }
+    
+    // 3. RECOMENDADO: Asegurar que la pantalla se mueva
+    // Si alguna vez le diste al botón "Detener", el timer visual se paró.
+    // Esto lo vuelve a encender para que veas las barras moverse.
+    if (timerSimulacion != null && !timerSimulacion.isRunning()) {
+        timerSimulacion.start();
+    }
+    }//GEN-LAST:event_btnIniciarActionPerformed
+       
+    
+    private void btnDetenerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDetenerActionPerformed
+    // Detener Reloj CPU
+    if (relojSistema != null) {
+        relojSistema.detener();
+        relojSistema = null;
+    }
+    lblCpuEstado.setText(":: PAUSADO ::");
+    lblCpuEstado.setForeground(java.awt.Color.ORANGE);
+    }//GEN-LAST:event_btnDetenerActionPerformed
+
+    private void btnPasoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPasoActionPerformed
+    // 1. Matar el automático para que no interfiera
+        if (relojSistema != null) {
+            relojSistema.detener();
+            relojSistema = null;
+        }
+
+        // 2. Dar un solo empujón al CPU
+        synchronized(cpu) {
+            cpu.notify();
+        }
+        lblCpuEstado.setText("PASO EJECUTADO");
+        lblCpuEstado.setForeground(java.awt.Color.YELLOW);
+    }//GEN-LAST:event_btnPasoActionPerformed
+
+    private void btnAbortarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAbortarActionPerformed
+       // 1. Activar bloqueo visual (para que el Timer no moleste)
+        sistemaAbortado = true; 
+
+        // 2. Matar el reloj del sistema
+        if (relojSistema != null) {
+            relojSistema.detener();
+            relojSistema = null;
+        }
+
+        // 3. REINICIAR EL PROCESO ACTUAL
+        clases.PCB proceso = cpu.getProcesoActual();
+        
+        if (proceso != null) {
+            // Ahora sí funciona este método porque lo acabamos de crear en el PCB
+            proceso.reiniciar(); 
+        }
+        
+        // 4. Mensaje visual de confirmación
+        lblCpuEstado.setText("!! ABORTADO !!");
+        lblCpuEstado.setForeground(java.awt.Color.RED);
+        
+    }//GEN-LAST:event_btnAbortarActionPerformed
+
+   
+
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnAbortar;
+    private javax.swing.JButton btnDetener;
+    private javax.swing.JButton btnIniciar;
+    private javax.swing.JButton btnPaso;
+    private javax.swing.JComboBox<String> comboAlgoritmos;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel7;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JLabel lblCpuEstado;
+    private javax.swing.JLabel lblCpuId;
+    private javax.swing.JLabel lblCpuNombre;
+    private javax.swing.JLabel lblCpuPC;
+    private javax.swing.JSpinner spinnerQuantum;
+    // End of variables declaration//GEN-END:variables
+
+
+}
+
+

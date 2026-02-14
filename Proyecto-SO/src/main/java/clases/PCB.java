@@ -118,4 +118,13 @@ public class PCB {
     public String toString() {
         return nombre + " (ID:" + id + ")";
     }
+    
+    public void reiniciar() {
+        this.programCounter = 0;
+        this.instruccionesEjecutadas = 0;
+        this.memoryAddressRegister = 0;
+        this.yaHizoIO = false; // Importante: Reseteamos esto para que pueda volver a pedir I/O
+        this.contadorIO = 0;
+    }
+    
 }
