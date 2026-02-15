@@ -3,11 +3,14 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package clases;
+
+import java.util.concurrent.Semaphore; 
+
 /**
- *
+ * CPU simula la ejecución de procesos ciclo a ciclo.
+ * Ahora sincronizado mediante SEMÁFOROS.
  * @author ricar
  */
-
 public class CPU extends Thread {
 
     // Referencias
@@ -22,6 +25,11 @@ public class CPU extends Thread {
     private int contadorQuantum; 
     private boolean interrupcionInmediata = false;
 
+    // --- 2. SEMÁFORO DE SINCRONIZACIÓN ---
+    // Inicia en 0 (ROJO/CERRADO). El CPU se bloqueará al intentar pasar.
+    // Solo el Reloj puede ponerlo en VERDE/ABIERTO.
+    private final Semaphore semaforoCiclo = new Semaphore(0);
+
     // Constructor
     public CPU(int quantum, Planificador planificador) {
         this.quantum = quantum;
@@ -29,7 +37,6 @@ public class CPU extends Thread {
         this.contadorQuantum = 0;
         this.activo = true;
     }
-    
     
     public void setQuantum(int quantum) {
         this.quantum = quantum;
@@ -39,7 +46,6 @@ public class CPU extends Thread {
     public void interrumpir() {
         this.interrupcionInmediata = true;
     }
-    
     
     public boolean estaLibre() {
         return procesoActual == null;
@@ -57,8 +63,7 @@ public class CPU extends Thread {
         this.interrupcionInmediata = false;
     }
 
-    // --- NUEVO MÉTODO AUXILIAR CRÍTICO ---
-    // Libera el CPU y dispara la interrupción hacia el Planificador
+    // --- MÉTODO AUXILIAR CRÍTICO ---
     private void liberarYNotificar(TipoInterrupcion tipo) {
         PCB procesoSaliente = this.procesoActual;
         
@@ -73,18 +78,20 @@ public class CPU extends Thread {
         }
     }
 
+    // --- 3. NUEVO MÉTODO PARA EL RELOJ ---
+    // Este método sustituye al 'notify()'. El Reloj lo llama cada segundo.
+    public void enviarPulsoReloj() {
+        semaforoCiclo.release(); // Incrementa el permiso (+1) y despierta al hilo
+    }
+
     @Override
     public void run() {
         while (activo) {
             try {
-                // 1. ESPERA PASIVA (Sincronización con Reloj)
-                // El CPU se queda "congelado" aquí.
-                // No consume recursos ni tiempo hasta que Reloj diga: cpu.notify()
-                synchronized (this) {
-                    wait(); 
-                }
-
-                // Cuando despierta, es porque pasó 1 segundo en el Reloj.
+                // --- 4. ESPERA ACTIVA ---
+                // acquire(). Si el valor es 0, se duerme aquí.
+                // Cuando el Reloj hace release(), esto pasa y resta 1.
+                semaforoCiclo.acquire(); 
 
                 // 2. EJECUCIÓN (Si hay proceso cargado)
                 if (procesoActual != null) {
@@ -130,8 +137,10 @@ public class CPU extends Thread {
                     
                     if (planificador.hayProcesosListos()) {
                         PCB siguiente = planificador.obtenerSiguiente();
-                        asignarProceso(siguiente); // El Dispatcher carga el proceso
-                        System.out.println("[CPU] Dispatcher cargó: " + siguiente.getNombre());
+                        if (siguiente != null) { // Doble check por seguridad
+                             asignarProceso(siguiente);
+                             System.out.println("[CPU] Dispatcher cargó: " + siguiente.getNombre());
+                        }
                     }
                 }
 

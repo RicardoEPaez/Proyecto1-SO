@@ -6,6 +6,7 @@ package clases;
 
 import estructuras.ColaPrioridad;
 import estructuras.ListaEnlazada;
+import java.util.concurrent.Semaphore; // <--- 1. IMPORTAMOS ESTO
 
 /**
  * El Planificador actua como el gestor de procesos del Sistema Operativo.
@@ -26,6 +27,9 @@ public class Planificador {
     // Gestión de Memoria
     private Memoria memoria;
     private ListaEnlazada<PCB> colaSwap; // Disco virtual
+    
+    // Mutex = Mutual Exclusion. Permiso único.
+    private final Semaphore mutex = new Semaphore(1); 
 
     public Planificador() {
         this.colaListos = new ColaPrioridad<>();
@@ -37,43 +41,60 @@ public class Planificador {
     }
 
     public void setAlgoritmo(AlgoritmoPlanificacion nuevoAlgoritmo) {
-        this.algoritmoActual = nuevoAlgoritmo;
-        // Reordenamos la cola actual con el nuevo criterio
-        System.out.println("--- [SISTEMA] Algoritmo cambiado a: " + nuevoAlgoritmo.toString() + " ---");
+        // Este es un cambio de configuración, idealmente protegemos también
+        try {
+            mutex.acquire();
+            this.algoritmoActual = nuevoAlgoritmo;
+            System.out.println("--- [SISTEMA] Algoritmo cambiado a: " + nuevoAlgoritmo.toString() + " ---");
+        } catch (InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            mutex.release();
+        }
     }
 
     public void setCPU(CPU cpu) {
         this.cpu = cpu;
     }
 
-    // --- MÉTODOS PRINCIPALES ---
+    // --- MÉTODOS PRINCIPALES (Protegidos con Semáforo) ---
 
-    public synchronized boolean agregarProceso(PCB proceso) {
-        // 1. Intentamos cargar en RAM
-        if (memoria.cargarEnMemoria(proceso)) {
-            System.out.println("--- [MEMORIA] Proceso " + proceso.getNombre() + " cargado en RAM ---");
+    public boolean agregarProceso(PCB proceso) {
+        boolean resultado = false;
+        try {
+            mutex.acquire(); // <--- BLOQUEO (ENTRADA)
             
-            // 2. Si entra, va a la cola de LISTOS
-            proceso.setEstado(Estado.LISTO);
-            encolarEnListos(proceso); // Usamos el wrapper
+            // 1. Intentamos cargar en RAM
+            if (memoria.cargarEnMemoria(proceso)) {
+                System.out.println("--- [MEMORIA] Proceso " + proceso.getNombre() + " cargado en RAM ---");
+                
+                // 2. Si entra, va a la cola de LISTOS
+                proceso.setEstado(Estado.LISTO);
+                encolarEnListos(proceso); 
 
-            // 3. Verificamos si debe expropiar al CPU (Context Switch)
-            verificarExpropiacion(proceso);
-            
-            // Avisamos al botón que fue un éxito
-            return true;
+                // 3. Verificamos si debe expropiar al CPU
+                verificarExpropiacion(proceso);
+                
+                resultado = true;
 
-        } else {
-            // 4. Si no cabe, va al Disco (Swap)
-            System.out.println("--- [MEMORIA FULL] No cabe " + proceso.getNombre() + ". Enviando a Swap... ---");
-            gestionarSwapping(proceso);
+            } else {
+                // 4. Si no cabe, va al Disco (Swap)
+                System.out.println("--- [MEMORIA FULL] No cabe " + proceso.getNombre() + ". Enviando a Swap... ---");
+                gestionarSwapping(proceso);
+                
+                resultado = true;
+            }
+            // ----------------------------------
             
-            // NUEVO: También retornamos true, porque el proceso entró al sistema (aunque sea en disco).
-            // Si retornara false, el botón diría "Error" aunque el proceso esté en Swap.
-            return true;
+        } catch (InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            mutex.release(); // <--- DESBLOQUEO (SALIDA)
         }
+        return resultado;
     }
 
+    // Método PRIVADO (Auxiliar): NO lleva semáforo porque lo llama 'agregarProceso' que YA tiene el permiso
     private void gestionarSwapping(PCB proceso) {
         colaSwap.agregar(proceso);
         System.out.println("    -> [SWAP] Proceso " + proceso.getNombre() + " encolado en disco virtual.");
@@ -81,22 +102,59 @@ public class Planificador {
 
     // --- MANEJO DE ESTADOS ---
 
-    public synchronized PCB obtenerSiguiente() {
-        if (colaListos.estaVacia()) return null;
-        return colaListos.desencolar();
+    public PCB obtenerSiguiente() {
+        PCB siguiente = null;
+        try {
+            mutex.acquire(); // <--- BLOQUEO
+            if (!colaListos.estaVacia()) {
+                siguiente = colaListos.desencolar();
+            }
+        } catch (InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            mutex.release(); // <--- DESBLOQUEO
+        }
+        return siguiente;
     }
 
-    public synchronized void expulsarProceso(PCB proceso) {
-        proceso.setEstado(Estado.LISTO);
-        encolarEnListos(proceso);
+    // Usado por PanelProcesador (botón abortar) o interrupciones
+    public void expulsarProceso(PCB proceso) {
+        try {
+            mutex.acquire();
+            proceso.setEstado(Estado.LISTO);
+            encolarEnListos(proceso);
+        } catch (InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            mutex.release();
+        }
     }
 
-    public synchronized void bloquearProceso(PCB proceso) {
-        proceso.setEstado(Estado.BLOQUEADO);
-        listaBloqueados.agregar(proceso);
+    public void bloquearProceso(PCB proceso) {
+        try {
+            mutex.acquire();
+            proceso.setEstado(Estado.BLOQUEADO);
+            listaBloqueados.agregar(proceso);
+        } catch (InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            mutex.release();
+        }
     }
 
-    public synchronized void terminarProceso(PCB proceso) {
+    public void terminarProceso(PCB proceso) {
+        try {
+            mutex.acquire();
+            terminarProcesoInterno(proceso); // Llamamos a la lógica interna
+        } catch (InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            mutex.release();
+        }
+    }
+    
+    // Lógica interna sin semáforo (para poder reusarla)
+    private void terminarProcesoInterno(PCB proceso) {
         System.out.println("[Planificador] Proceso finalizado: " + proceso.getNombre());
         
         // 1. Liberar RAM
@@ -108,21 +166,19 @@ public class Planificador {
     
     // --- GESTIÓN DE MEMORIA VIRTUAL (SWAP) ---
 
+    // Privado: No necesita semáforo propio, usa el del llamante
     private void revisarColaSwap() {
         if (!colaSwap.estaVacia()) {
-            PCB candidato = colaSwap.get(0); // Miramos el primero
+            PCB candidato = colaSwap.get(0); 
             
             // Intentamos subirlo a RAM
             if (memoria.cargarEnMemoria(candidato)) {
-                colaSwap.eliminar(candidato); // Lo sacamos del disco
+                colaSwap.eliminar(candidato); 
                 System.out.println("    <- [SWAP IN] Proceso " + candidato.getNombre() + " movido de Disco a RAM.");
                 
-                // Lo ponemos listo
                 candidato.setEstado(Estado.LISTO);
                 encolarEnListos(candidato);
                 
-                // IMPORTANTE: Al volver del swap, también podría ser urgente.
-                // Verificamos si debe expropiar al actual.
                 verificarExpropiacion(candidato);
             }
         }
@@ -130,38 +186,45 @@ public class Planificador {
 
     // --- CÓDIGO DEL RELOJ Y BLOQUEOS ---
 
-    public synchronized void verificarBloqueados() {
-        if (listaBloqueados.estaVacia()) return;
-
-        ListaEnlazada<PCB> procesosParaDespertar = new ListaEnlazada<>();
-
-        // 1. Aumentar contadores
-        for (int i = 0; i < listaBloqueados.getTamano(); i++) {
-            PCB p = listaBloqueados.get(i);
-            p.aumentarContadorIO();
-            if (p.getContadorIO() >= p.getLongitudIO()) {
-                procesosParaDespertar.agregar(p);
-            }
-        }
-
-        // 2. Despertar procesos
-        for (int i = 0; i < procesosParaDespertar.getTamano(); i++) {
-            PCB p = procesosParaDespertar.get(i);
+    public void verificarBloqueados() {
+        try {
+            mutex.acquire(); // <--- BLOQUEO COMPLETO DE LA VERIFICACIÓN
             
-            listaBloqueados.eliminar(p);
-            p.reiniciarContadorIO();
-            System.out.println("--> [Planificador] I/O Completado: " + p.getNombre());
+            if (!listaBloqueados.estaVacia()) {
+                ListaEnlazada<PCB> procesosParaDespertar = new ListaEnlazada<>();
 
-            // Regresa a la cola de listos
-            p.setEstado(Estado.LISTO);
-            encolarEnListos(p);
+                // 1. Aumentar contadores
+                for (int i = 0; i < listaBloqueados.getTamano(); i++) {
+                    PCB p = listaBloqueados.get(i);
+                    p.aumentarContadorIO();
+                    if (p.getContadorIO() >= p.getLongitudIO()) {
+                        procesosParaDespertar.agregar(p);
+                    }
+                }
 
-            // Verificamos si este proceso que despertó es más importante que el actual
-            verificarExpropiacion(p);
+                // 2. Despertar procesos
+                for (int i = 0; i < procesosParaDespertar.getTamano(); i++) {
+                    PCB p = procesosParaDespertar.get(i);
+                    
+                    listaBloqueados.eliminar(p);
+                    p.reiniciarContadorIO();
+                    System.out.println("--> [Planificador] I/O Completado: " + p.getNombre());
+
+                    p.setEstado(Estado.LISTO);
+                    encolarEnListos(p);
+
+                    verificarExpropiacion(p);
+                }
+            }
+        } catch (InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            mutex.release();
         }
     }
     
     // --- MÉTODO CENTRALIZADO DE EXPROPIACIÓN ---
+    // Privado: Hereda el permiso del semáforo
     private void verificarExpropiacion(PCB nuevoProceso) {
         if (cpu != null && !cpu.estaLibre()) {
             PCB enEjecucion = cpu.getProcesoActual();
@@ -173,53 +236,90 @@ public class Planificador {
     }
 
     // --- MANEJO DE INTERRUPCIONES DEL CPU ---
-
-    public synchronized void manejarInterrupcion(TipoInterrupcion tipo, PCB proceso) {
+    public void manejarInterrupcion(TipoInterrupcion tipo, PCB proceso) {
         if (proceso == null) return;
-
-        switch (tipo) {
-            case FIN_PROCESO:
-                proceso.setEstado(Estado.TERMINADO);
-                this.terminarProceso(proceso);
-                break;
-
-            case TIEMPO_AGOTADO: // Fin de Quantum
-            case DESALOJO_POR_PRIORIDAD: // SRT / Prioridad Apropiativa
-                this.expulsarProceso(proceso);
-                break;
-
-            case SOLICITUD_IO:
-                this.bloquearProceso(proceso);
-                break;
-        }
         
-        // Siempre intentamos llenar el CPU si quedó vacío
-        despacharSiguiente();
+        try {
+            mutex.acquire(); // Protegemos la decisión
+            
+            switch (tipo) {
+                case FIN_PROCESO:
+                    proceso.setEstado(Estado.TERMINADO);
+                    terminarProcesoInterno(proceso); // Usamos el interno para no bloquear 2 veces
+                    break;
+
+                case TIEMPO_AGOTADO: // Fin de Quantum
+                case DESALOJO_POR_PRIORIDAD: // SRT / Prioridad Apropiativa
+                    proceso.setEstado(Estado.LISTO);
+                    encolarEnListos(proceso);
+                    break;
+
+                case SOLICITUD_IO:
+                    proceso.setEstado(Estado.BLOQUEADO);
+                    listaBloqueados.agregar(proceso);
+                    break;
+            }
+            
+            // Liberamos ANTES de despachar para que el dispatcher pueda trabajar si necesita el semáforo
+            // Siempre intentamos llenar el CPU si quedó vacío
+            despacharSiguiente();
+            
+        } catch (InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            mutex.release();
+        }
     }
 
+    // Privado, llamado dentro de la sección crítica
     private void despacharSiguiente() {
-        PCB siguiente = this.obtenerSiguiente();
-        if (siguiente != null) {
-            // Nota: Aquí solo asignamos la referencia. 
-            // El CPU no ejecutará nada hasta que el Reloj haga notify()
-            cpu.asignarProceso(siguiente);
+        if (!colaListos.estaVacia()) {
+             PCB siguiente = colaListos.desencolar();
+             if (siguiente != null) {
+                cpu.asignarProceso(siguiente);
+             }
         }
     }
     
     public boolean hayProcesosListos() {
-        return !colaListos.estaVacia();
+        // Lectura rápida, a veces se permite sin semáforo, pero por seguridad:
+        boolean hay = false;
+        try {
+            mutex.acquire();
+            hay = !colaListos.estaVacia();
+        } catch (InterruptedException e) { System.err.println("Error: " + e.getMessage()); } 
+        finally { mutex.release(); }
+        return hay;
     }
     
-    // --- WRAPPER ÚTIL ---
-    public void encolarEnListos(PCB proceso) {
+    // Helper privado
+    private void encolarEnListos(PCB proceso) {
         algoritmoActual.encolar(this.colaListos, proceso);
     }
     
-    public ColaPrioridad<PCB> getColaListos() {
-        return this.colaListos; 
+    // GETTERS PARA GUI (CON SEMÁFORO)
+    
+    public Object[] getColaListosParaTabla() {
+        Object[] datos = null;
+        try {
+            mutex.acquire();
+            datos = colaListos.toArray();
+        } catch(InterruptedException e) { System.err.println("Error: " + e.getMessage()); }
+        finally { mutex.release(); }
+        return datos;
     }
 
-    public ListaEnlazada<PCB> getColaBloqueados() {
-        return this.listaBloqueados; 
+    public Object[] getColaBloqueadosParaTabla() {
+        Object[] datos = null;
+        try {
+            mutex.acquire();
+            datos = listaBloqueados.toArray(); // Asumiendo que ListaEnlazada tiene un toArray()
+        } catch(InterruptedException e) { System.err.println("Error: " + e.getMessage()); }
+        finally { mutex.release(); }
+        return datos;
     }
+    
+    
+    public ColaPrioridad<PCB> getColaListos() { return this.colaListos; }
+    public ListaEnlazada<PCB> getColaBloqueados() { return this.listaBloqueados; }
 }
