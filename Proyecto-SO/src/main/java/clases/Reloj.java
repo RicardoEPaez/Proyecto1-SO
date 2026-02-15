@@ -5,11 +5,10 @@
 package clases;
 
 /**
- * El Reloj Maestro del Sistema.
- * Sincroniza el paso del tiempo para I/O y CPU.
+ * Reloj Maestro usando Semáforos para señalización.
  * @author Ramon-Carrasquel
  */
-public class Reloj extends Thread{
+public class Reloj extends Thread {
     private Planificador planificador;
     private CPU cpu;
     private volatile boolean activo = true;
@@ -24,23 +23,20 @@ public class Reloj extends Thread{
     public void run() {
         while (activo) {
             try {
-                // 1. EL RELOJ MARCA EL RITMO (1 segundo real)
+                // 1. RITMO (1 segundo real)
                 Thread.sleep(1000); 
                 cicloActual++;
                 System.out.println(">>> [RELOJ] Ciclo Global: " + cicloActual);
 
-                // 2. ACTUALIZAR PROCESOS BLOQUEADOS (I/O)
-                // Esto reduce el contador de espera de los procesos en E/S
+                // 2. ACTUALIZAR I/O (Ya es seguro porque Planificador usa semáforos dentro)
                 planificador.verificarBloqueados(); 
 
-                // 3. AVISAR AL CPU (Wait/Notify)
-                // Despierta al CPU para que ejecute una instrucción en este ciclo
-                synchronized(cpu) {
-                    cpu.notify(); 
-                }
+                // 3. AVISAR AL CPU (Reemplazo de notify())
+                // En lugar de synchronized/notify, liberamos un "ticket" para el CPU.
+                cpu.enviarPulsoReloj(); 
 
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                System.err.println("Error: " + e.getMessage());
             }
         }
     }

@@ -4,69 +4,97 @@
  */
 package clases;
 
+import java.util.concurrent.Semaphore; // <--- IMPORTAR
+
 /**
- * Gestor de Memoria (Simulación de Particiones Fijas)
+ * Gestor de Memoria con SEMÁFOROS (Exclusión Mutua)
  * @author Ramon-Carrasquel
  */
 public class Memoria {
     
     // Configuración
-    private final int MAX_MEMORIA = 1024; // 1024 MB Totales
+    private final int MAX_MEMORIA = 1024; 
     private int memoriaDisponible;
-    
-    // Representación de la RAM: 
-    // Para simplificar, diremos que la RAM puede aguantar máximo N procesos simultáneos
-    // o podemos hacerlo por bloques. Haremos una simplificación de "Slots".
     private PCB[] particiones;
     
+    // SEMÁFORO (MUTEX)
+    private final Semaphore mutex = new Semaphore(1); // Permiso único
+
     public Memoria() {
         this.memoriaDisponible = MAX_MEMORIA;
-        this.particiones = new PCB[10]; // Digamos que el satélite soporta 10 procesos en RAM simultáneos
+        this.particiones = new PCB[10]; 
     }
 
-    /**
-     * Intenta cargar un proceso en memoria (RAM).
-     * @param proceso El objeto PCB que intenta entrar a la RAM.
-     * @return true si se pudo cargar, false si la memoria está llena o no hay slots.
-     */
     public boolean cargarEnMemoria(PCB proceso) {
-        if (proceso.getTamano() > memoriaDisponible) {
-            return false; // No hay espacio físico suficiente
-        }
-
-        // Buscamos un slot vacío en el arreglo
-        for (int i = 0; i < particiones.length; i++) {
-            if (particiones[i] == null) {
-                particiones[i] = proceso;
-                proceso.setDireccionMemoria(i); // Guardamos dónde quedó
-                memoriaDisponible -= proceso.getTamano();
-                return true; // Éxito
+        boolean exito = false;
+        try {
+            mutex.acquire(); // <--- BLOQUEO
+            
+            // --- SECCIÓN CRÍTICA ---
+            if (proceso.getTamano() <= memoriaDisponible) {
+                // Buscamos slot vacío
+                for (int i = 0; i < particiones.length; i++) {
+                    if (particiones[i] == null) {
+                        particiones[i] = proceso;
+                        proceso.setDireccionMemoria(i); 
+                        memoriaDisponible -= proceso.getTamano();
+                        exito = true;
+                        break; // Salimos del for
+                    }
+                }
             }
+            // -----------------------
+            
+        } catch (InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            mutex.release(); // <--- DESBLOQUEO
         }
-        return false; // No hay slots (aunque haya MB libres, no hay particiones)
+        return exito;
     }
 
-    /**
-     * Saca un proceso de memoria (Swap Out o Terminado).
-     * @param proceso El proceso que libera su espacio.
-     */
     public void liberarMemoria(PCB proceso) {
-        int idx = proceso.getDireccionMemoria();
-        
-        if (idx != -1 && particiones[idx] == proceso) {
-            particiones[idx] = null; // Liberamos el slot
-            memoriaDisponible += proceso.getTamano(); // Recuperamos los MB
-            proceso.setDireccionMemoria(-1);
+        try {
+            mutex.acquire(); // <--- BLOQUEO
+            
+            int idx = proceso.getDireccionMemoria();
+            if (idx != -1 && particiones[idx] == proceso) {
+                particiones[idx] = null; 
+                memoriaDisponible += proceso.getTamano(); 
+                proceso.setDireccionMemoria(-1);
+            }
+            
+        } catch (InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            mutex.release(); // <--- DESBLOQUEO
         }
     }
     
-    // --- MÉTODOS PARA LA INTERFAZ GRÁFICA (GUI) ---
+    // --- MÉTODOS PARA LA GUI ---
+    // Es buena práctica proteger también la lectura para que la GUI no lea un estado "a medias".
 
-    // Permite a la GUI ver el estado de los bloques de memoria
     public PCB[] getParticiones() {
-        return particiones;
+        PCB[] copia = null;
+        try {
+            mutex.acquire();
+            // Retornamos el array
+            copia = particiones; 
+        } catch (InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            mutex.release();
+        }
+        return copia;
     }
     
-    // Permite a la GUI saber cuánto espacio libre queda para mostrarlo en un Label
-    public int getMemoriaDisponible() { return memoriaDisponible; }
+    public int getMemoriaDisponible() { 
+        int mem = 0;
+        try {
+            mutex.acquire();
+            mem = memoriaDisponible;
+        } catch (InterruptedException e) { System.err.println("Error: " + e.getMessage()); } 
+        finally { mutex.release(); }
+        return mem;
+    }
 }
