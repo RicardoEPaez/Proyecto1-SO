@@ -45,6 +45,10 @@ public class CPU extends Thread {
     // Método para forzar una interrupción externa
     public void interrumpir() {
         this.interrupcionInmediata = true;
+        
+        if (this.procesoActual != null) {
+            this.procesoActual.setEstado(Estado.BLOQUEADO); // (O Estado.INTERRUMPIDO si lo tienes)
+        }
     }
     
     public boolean estaLibre() {
