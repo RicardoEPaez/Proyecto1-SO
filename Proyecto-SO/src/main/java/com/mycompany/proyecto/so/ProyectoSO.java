@@ -26,7 +26,7 @@ public class ProyectoSO extends javax.swing.JFrame {
     private PanelCreador panelCreador;   // Sur
     private PanelColas panelColas;       // Oeste (Izquierda)
     private PanelMemoria panelMemoria;   // Este (Derecha)
-
+    
     public ProyectoSO() {
         // 1. Iniciar componentes visuales
         initComponents();
@@ -42,7 +42,7 @@ public class ProyectoSO extends javax.swing.JFrame {
         // Iniciar lógica del SO (CPU, Memoria, etc)
         iniciarSistemaOperativo();
         
-        iniciarRelojVisual();
+      
         
         // =========================================================
         // A. ZONA NORTE: PROCESADOR (Panel Gris)
@@ -105,6 +105,8 @@ public class ProyectoSO extends javax.swing.JFrame {
 
         this.add(panelCreador, java.awt.BorderLayout.SOUTH);
 
+        iniciarRefrescoTablas();
+        
         // Finalizar
         this.setVisible(true);
     }
@@ -124,16 +126,22 @@ public class ProyectoSO extends javax.swing.JFrame {
         
     }
     
-  
-    public void iniciarRelojVisual() {
-        // Cada 1000 milisegundos (1 segundo) se ejecuta el código de adentro
-        Timer relojSistema = new Timer(1000, new ActionListener() {
+ 
+    private void iniciarRefrescoTablas() {
+        javax.swing.Timer timerVisual = new javax.swing.Timer(500, new java.awt.event.ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                actualizarTablas(); // Llama al método de abajo
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (panelColas != null && planificador != null) {
+                    panelColas.actualizarColas(
+                        planificador.getColaListos(), 
+                        planificador.getColaBloqueados()
+                    );
+                }
+                // Si tu panel de memoria necesita refresco explícito, hazlo aquí también
+                panelMemoria.repaint(); 
             }
         });
-        relojSistema.start(); // ¡START AUTOMÁTICO!
+        timerVisual.start();
     }
     
     public void actualizarTablas() {
