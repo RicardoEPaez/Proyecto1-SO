@@ -5,6 +5,7 @@
 package com.mycompany.proyecto.so;
 
 import clases.CPU;
+import clases.Memoria;
 import clases.PCB;
 import clases.Planificador;
 import java.awt.BorderLayout;
@@ -21,6 +22,7 @@ public class ProyectoSO extends javax.swing.JFrame {
 
     // Referencias globales para que no se pierdan
     private CPU cpu;
+    private Memoria memoria;
     private Planificador planificador;
     private PanelProcesador panelVisual;
     private PanelCreador panelCreador;   // Sur
@@ -112,8 +114,15 @@ public class ProyectoSO extends javax.swing.JFrame {
     }
     
     private void iniciarSistemaOperativo() {
+        
+        // Instanciamos la memoria
+        memoria = new Memoria();
+        
         // Creamos el planificador (Kernel)
         planificador = new Planificador();
+        
+        // Conectamos la memoria con el planificador
+        planificador.setMemoria(memoria);
         
         // Creamos el CPU con un Quantum por defecto de 3
         cpu = new CPU(3, planificador);
@@ -138,7 +147,9 @@ public class ProyectoSO extends javax.swing.JFrame {
                     );
                 }
                 // Si tu panel de memoria necesita refresco explícito, hazlo aquí también
-                panelMemoria.repaint(); 
+                if (panelMemoria != null && memoria != null) {
+                    panelMemoria.actualizarMemoria(memoria);
+                } 
             }
         });
         timerVisual.start();
