@@ -57,6 +57,10 @@ public class Planificador {
     public void setCPU(CPU cpu) {
         this.cpu = cpu;
     }
+    
+    public void setMemoria(Memoria memoria) {
+        this.memoria = memoria;
+    }
 
     // --- MÉTODOS PRINCIPALES (Protegidos con Semáforo) ---
 
