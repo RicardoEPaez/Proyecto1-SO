@@ -20,6 +20,7 @@ public class PanelProcesador extends javax.swing.JPanel {
     private boolean sistemaAbortado = false;
     private clases.Reloj relojSistema;
     private javax.swing.Timer timerSimulacion;
+    private clases.GeneradorInterrupciones generadorInterrupciones;
     
     /**
      * Creates new form PanelProcesador
@@ -42,21 +43,28 @@ public class PanelProcesador extends javax.swing.JPanel {
 
     
     
-        // --- MÉTODO AUXILIAR PARA NO REPETIR CÓDIGO ---
+   
     private void detenerTodo() {
-        // 1. Detener Backend
+        // 1. Detener Backend (Reloj)
         if (relojSistema != null) {
-            relojSistema.detener(); // Asumiendo que tu clase Reloj tiene este método
+            relojSistema.detener(); 
             relojSistema = null;
         }
-        // 2. Detener Frontend (Opcional: Si quieres que se congele la pantalla)
+        
+        // 2. Detener Generador de Interrupciones (NUEVO)
+        if (generadorInterrupciones != null) {
+            generadorInterrupciones.detener();
+            generadorInterrupciones.interrupt(); // Lo despertamos por si estaba durmiendo (Thread.sleep)
+            generadorInterrupciones = null;
+        }
+
+        // 3. Detener Frontend (Timer Visual)
         if (timerSimulacion != null && timerSimulacion.isRunning()) {
             timerSimulacion.stop();
         }
     }
-    /**
-     * Actualiza los textos del Panel CPU usando tu clase PCB.
-     */
+      
+    
     /**
      * Actualiza los textos del Panel CPU usando tu clase PCB.
      */
@@ -66,13 +74,7 @@ public class PanelProcesador extends javax.swing.JPanel {
         // 0. ACTUALIZAR TIEMPO GLOBAL DE MISIÓN
         // ---------------------------------------------------------
         if (planificador != null) {
-            // Obtenemos el tiempo total acumulado desde el Planificador o el Reloj
             int tiempoGlobal = (relojSistema != null) ? relojSistema.getCicloActual() : 0;
-            
-            // Si el reloj está null (pausa), intentamos mantener el último valor conocido si es posible,
-            // pero por simplicidad aquí mostraremos el del ciclo actual o 0.
-            // (Nota: Si tu clase Planificador guarda el tiempo total, úsalo aquí: planificador.getTiempoTotal())
-            
             jLabel1.setText("TIEMPO DE MISION: T+ " + tiempoGlobal + " CICLOS");
         }
 
@@ -104,12 +106,13 @@ public class PanelProcesador extends javax.swing.JPanel {
             return; 
         }
 
+        // Si llegamos aquí, SÍ hay proceso en el CPU. 
+        lblCpuNombre.setText(proceso.getNombre());
+        lblCpuId.setText("ID del Proceso: " + proceso.getId());
+        lblCpuPC.setText("Contador: " + proceso.getProgramCounter() + " / " + proceso.getInstruccionesTotales());
+
         // CASO B: PROCESO EXISTE PERO RELOJ DETENIDO (Pausa manual)
         if (relojSistema == null) {
-            lblCpuNombre.setText(proceso.getNombre());
-            lblCpuId.setText("ID del Proceso: " + proceso.getId());
-            lblCpuPC.setText("Contador: " + proceso.getProgramCounter() + " / " + proceso.getInstruccionesTotales());
-            
             if (!lblCpuEstado.getText().equals("PASO EJECUTADO")) {
                 lblCpuEstado.setText(":: PAUSADO ::");
                 lblCpuEstado.setForeground(java.awt.Color.ORANGE);
@@ -117,15 +120,25 @@ public class PanelProcesador extends javax.swing.JPanel {
             return; 
         }
 
-        // --- SI HAY PROCESO Y RELOJ CORRIENDO (ESTADO EJECUTANDO) ---
-        lblCpuNombre.setText(proceso.getNombre());
-        lblCpuId.setText("ID del Proceso: " + proceso.getId());
-        lblCpuPC.setText("Contador: " + proceso.getProgramCounter() + " / " + proceso.getInstruccionesTotales());
-        
-        lblCpuEstado.setText("ESTADO: EJECUTANDO");
-        lblCpuEstado.setForeground(java.awt.Color.GREEN);
-    }
+        // ---------------------------------------------------------
+        // 3. ESTADO DINÁMICO (MIENTRAS CORRE EL RELOJ)
+        // ---------------------------------------------------------
+        // Leemos el estado interno del proceso para saber si le cayó una interrupción
+        clases.Estado estadoActual = proceso.getEstado();
 
+        // CASO C: FUE ATACADO POR EL GENERADOR DE INTERRUPCIONES
+        if (estadoActual == clases.Estado.BLOQUEADO || estadoActual == clases.Estado.BLOQUEADO) {
+            
+            lblCpuEstado.setText(":: INTERRUMPIDO ::");
+            lblCpuEstado.setForeground(java.awt.Color.cyan);
+            
+        } 
+        // CASO D: EJECUCIÓN NORMAL
+        else {
+            lblCpuEstado.setText("ESTADO: EJECUTANDO");
+            lblCpuEstado.setForeground(java.awt.Color.GREEN);
+        }
+    }
   
    
     /**
