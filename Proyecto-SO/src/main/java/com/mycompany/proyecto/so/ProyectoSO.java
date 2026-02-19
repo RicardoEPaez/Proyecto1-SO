@@ -5,6 +5,7 @@
 package com.mycompany.proyecto.so;
 
 import clases.CPU;
+import clases.GeneradorInterrupciones;
 import clases.Memoria;
 import clases.PCB;
 import clases.Planificador;
@@ -22,6 +23,7 @@ public class ProyectoSO extends javax.swing.JFrame {
 
     // Referencias globales para que no se pierdan
     private CPU cpu;
+    private GeneradorInterrupciones generadorInterrupciones;
     private Memoria memoria;
     private Planificador planificador;
     private PanelProcesador panelVisual;
@@ -133,6 +135,9 @@ public class ProyectoSO extends javax.swing.JFrame {
         // Arrancamos el hilo del CPU (IMPORTANTE: Si no, no funciona "isAlive")
         cpu.start();
         
+        // Arrancamos el hilo generador de interrupciones externas
+        generadorInterrupciones = new GeneradorInterrupciones(cpu);
+        generadorInterrupciones.start();
     }
     
  
