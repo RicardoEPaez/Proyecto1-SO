@@ -30,6 +30,7 @@ public class Planificador {
     
     // Mutex = Mutual Exclusion. Permiso único.
     private final Semaphore mutex = new Semaphore(1); 
+    private int tiempoSistema = 0;
 
     public Planificador() {
         this.colaListos = new ColaPrioridad<>();

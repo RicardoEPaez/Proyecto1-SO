@@ -4,6 +4,7 @@
  */
 package com.mycompany.proyecto.so;
 
+import clases.AlgoritmoPlanificacion;
 import clases.CPU;
 import clases.Planificador;
 
@@ -28,7 +29,7 @@ public class PanelProcesador extends javax.swing.JPanel {
         this.planificador = planificador;
         initComponents();
         // En el Constructor:
-        javax.swing.Timer timer = new javax.swing.Timer(100, new java.awt.event.ActionListener() {
+        timerSimulacion = new javax.swing.Timer(100, new java.awt.event.ActionListener() {
         @Override
         public void actionPerformed(java.awt.event.ActionEvent e) {
             actualizarLabelsCPU(); // <--- ¡AQUÍ!
@@ -36,9 +37,23 @@ public class PanelProcesador extends javax.swing.JPanel {
         repaint();
     }
     });
-        timer.start();
+        timerSimulacion.start();
     }
 
+    
+    
+        // --- MÉTODO AUXILIAR PARA NO REPETIR CÓDIGO ---
+    private void detenerTodo() {
+        // 1. Detener Backend
+        if (relojSistema != null) {
+            relojSistema.detener(); // Asumiendo que tu clase Reloj tiene este método
+            relojSistema = null;
+        }
+        // 2. Detener Frontend (Opcional: Si quieres que se congele la pantalla)
+        if (timerSimulacion != null && timerSimulacion.isRunning()) {
+            timerSimulacion.stop();
+        }
+    }
     /**
      * Actualiza los textos del Panel CPU usando tu clase PCB.
      */
@@ -48,7 +63,21 @@ public class PanelProcesador extends javax.swing.JPanel {
     private void actualizarLabelsCPU() {
         
         // ---------------------------------------------------------
-        // 1. CHEQUEO DE PRIORIDAD MÁXIMA: ABORTADO
+        // 0. ACTUALIZAR TIEMPO GLOBAL DE MISIÓN
+        // ---------------------------------------------------------
+        if (planificador != null) {
+            // Obtenemos el tiempo total acumulado desde el Planificador o el Reloj
+            int tiempoGlobal = (relojSistema != null) ? relojSistema.getCicloActual() : 0;
+            
+            // Si el reloj está null (pausa), intentamos mantener el último valor conocido si es posible,
+            // pero por simplicidad aquí mostraremos el del ciclo actual o 0.
+            // (Nota: Si tu clase Planificador guarda el tiempo total, úsalo aquí: planificador.getTiempoTotal())
+            
+            jLabel1.setText("TIEMPO DE MISION: T+ " + tiempoGlobal + " CICLOS");
+        }
+
+        // ---------------------------------------------------------
+        // 1. CHEQUEO DE ABORTADO (Emergencia)
         // ---------------------------------------------------------
         if (sistemaAbortado) {
             lblCpuNombre.setText("---");
@@ -56,44 +85,15 @@ public class PanelProcesador extends javax.swing.JPanel {
             lblCpuPC.setText("0 / 0");
             lblCpuEstado.setText("!! ABORTADO !!");
             lblCpuEstado.setForeground(java.awt.Color.RED);
-            return; // Nos vamos
+            return;
         }
         
         // ---------------------------------------------------------
-        // 2. CHEQUEO DE LÍMITE DE TIEMPO (NUEVO)
+        // 2. OBTENER ESTADO DEL CPU
         // ---------------------------------------------------------
-        // Verificamos si llegamos a 50 ciclos.
-        // Usamos el operador ternario para evitar error si reloj es null
-        int ciclos = (relojSistema != null) ? relojSistema.getCicloActual() : 0;
-        
-        if (ciclos >= 50) {
-            // A. Detener Reloj (Backend)
-            if (relojSistema != null) {
-                relojSistema.detener();
-                relojSistema = null;
-                System.out.println(">>> SIMULACIÓN FINALIZADA (50 Ciclos)");
-            }
-            
-            // B. Detener Timer Visual (Frontend)
-            if (timerSimulacion != null) {
-                timerSimulacion.stop();
-            }
-            
-            // C. Avisar al usuario
-            lblCpuEstado.setText("SIMULACIÓN TERMINADA");
-            lblCpuEstado.setForeground(java.awt.Color.BLUE);
-            btnIniciar.setEnabled(true); // Habilitar botón para reiniciar si se desea
-            
-            return; // Nos vamos, no hay nada más que pintar
-        }
-
-        // ---------------------------------------------------------
-        // 3. A PARTIR DE AQUÍ, TU CÓDIGO ORIGINAL INTACTO
-        // ---------------------------------------------------------
-        
         clases.PCB proceso = cpu.getProcesoActual();
 
-        // --- SI LA CPU ESTÁ VACÍA (ESTADO ESPERANDO) ---
+        // CASO A: CPU VACÍA (No hay procesos o acabaron todos)
         if (proceso == null) {
             lblCpuNombre.setText("Nombre del Proceso: ---");
             lblCpuId.setText("ID del Proceso: --");
@@ -104,9 +104,9 @@ public class PanelProcesador extends javax.swing.JPanel {
             return; 
         }
 
-        // --- SI HAY PROCESO PERO NO HAY RELOJ (ESTADO PAUSADO) ---
+        // CASO B: PROCESO EXISTE PERO RELOJ DETENIDO (Pausa manual)
         if (relojSistema == null) {
-            lblCpuNombre.setText("Nombre del Proceso: " + proceso.getNombre());
+            lblCpuNombre.setText(proceso.getNombre());
             lblCpuId.setText("ID del Proceso: " + proceso.getId());
             lblCpuPC.setText("Contador: " + proceso.getProgramCounter() + " / " + proceso.getInstruccionesTotales());
             
@@ -118,7 +118,7 @@ public class PanelProcesador extends javax.swing.JPanel {
         }
 
         // --- SI HAY PROCESO Y RELOJ CORRIENDO (ESTADO EJECUTANDO) ---
-        lblCpuNombre.setText("Nombre del Proceso: " + proceso.getNombre());
+        lblCpuNombre.setText(proceso.getNombre());
         lblCpuId.setText("ID del Proceso: " + proceso.getId());
         lblCpuPC.setText("Contador: " + proceso.getProgramCounter() + " / " + proceso.getInstruccionesTotales());
         
@@ -314,56 +314,84 @@ public class PanelProcesador extends javax.swing.JPanel {
     private void btnIniciarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIniciarActionPerformed
         sistemaAbortado = false;
         
-        // --- NUEVO BLOQUE: CARGA DE 20 PROCESOS ---
-    // Esto simplemente llena la memoria antes de que el CPU empiece a trabajar.
-    // No toca el reloj, ni el timer, ni la gráfica. Solo añade datos.
-    System.out.println(">>> Generando carga inicial de 20 procesos...");
-    
-    for (int i = 0; i < 20; i++) {
-        // Generamos un proceso al azar
-        clases.PCB proceso = clases.GeneradorProcesos.generarProcesoAleatorio();
-        // Se lo entregamos al planificador (Kernel)
-        planificador.agregarProceso(proceso);
-    }
-    
-    // -------------------------------------------
-    // 1. Arrancar el Reloj del CPU (Tu código de siempre)
-    
-    if (relojSistema == null || !relojSistema.isAlive()) {
-        relojSistema = new clases.Reloj(planificador, cpu);
-        relojSistema.start();
-    }
-    
-    // 3. RECOMENDADO: Asegurar que la pantalla se mueva
-    // Si alguna vez le diste al botón "Detener", el timer visual se paró.
-    // Esto lo vuelve a encender para que veas las barras moverse.
-    if (timerSimulacion != null && !timerSimulacion.isRunning()) {
-        timerSimulacion.start();
-    }
+        String algoritmoSeleccionado = comboAlgoritmos.getSelectedItem().toString();
+        int quantumSeleccionado = (int) spinnerQuantum.getValue();
+        
+        
+        System.out.println("Configurando simulacion -> Algoritmo: " + algoritmoSeleccionado + " | Quantum: " + quantumSeleccionado);
+        
+        
+        
+         cpu.setQuantum(quantumSeleccionado);
+        
+      
+         
+         clases.AlgoritmoPlanificacion nuevoAlgoritmo = null; 
+        
+        switch (algoritmoSeleccionado) {
+            case "FCFS":
+                nuevoAlgoritmo = new clases.AlgoritmoFCFS(); 
+                break;
+            case "RoundRobin":
+                nuevoAlgoritmo = new clases.AlgoritmoRoundRobin(quantumSeleccionado); 
+                break;
+            //case "SPN":
+                //nuevoAlgoritmo = new clases.AlgoritmoEDF(); 
+                //break;
+            case "SRT":
+                nuevoAlgoritmo = new clases.AlgoritmoSRT(); 
+                break;
+        }
+
+        // Enviamos el objeto al Planificador usando tu método seguro con Mutex
+        if (nuevoAlgoritmo != null) {
+            planificador.setAlgoritmo(nuevoAlgoritmo);
+        }
+        // =========================================================
+         
+        // 1. Cargar Procesos (Solo si está vacío o es el inicio)
+        if (planificador.getColaListos().estaVacia()&& cpu.getProcesoActual() == null) {
+            System.out.println(">>> Generando carga inicial de 20 procesos...");
+            for (int i = 0; i < 20; i++) {
+                clases.PCB proceso = clases.GeneradorProcesos.generarProcesoAleatorio();
+                planificador.agregarProceso(proceso);
+            }
+        }
+        
+        // 2. Arrancar el Reloj Lógico (Backend)
+        if (relojSistema == null || !relojSistema.isAlive()) {
+            relojSistema = new clases.Reloj(planificador, cpu);
+            relojSistema.start();
+        }
+        
+        // 3. Arrancar el Reloj Visual (Frontend)
+        if (timerSimulacion != null && !timerSimulacion.isRunning()) {
+            timerSimulacion.start();
+        }
     }//GEN-LAST:event_btnIniciarActionPerformed
        
     
     private void btnDetenerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDetenerActionPerformed
-    // Detener Reloj CPU
-    if (relojSistema != null) {
-        relojSistema.detener();
-        relojSistema = null;
-    }
-    lblCpuEstado.setText(":: PAUSADO ::");
-    lblCpuEstado.setForeground(java.awt.Color.ORANGE);
+        // Llamamos al método que creamos arriba
+        detenerTodo();
+        
+        // Forzamos actualización visual inmediata
+        lblCpuEstado.setText(":: PAUSADO ::");
+        lblCpuEstado.setForeground(java.awt.Color.ORANGE);
+        repaint();
     }//GEN-LAST:event_btnDetenerActionPerformed
 
     private void btnPasoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPasoActionPerformed
-    // 1. Matar el automático para que no interfiera
-        if (relojSistema != null) {
-            relojSistema.detener();
-            relojSistema = null;
-        }
+    // 1. Detener automático
+        detenerTodo();
 
-        // 2. Dar un solo empujón al CPU
+        // 2. Dar un empujón al CPU
         synchronized(cpu) {
             cpu.notify();
         }
+        
+        // 3. Actualizar visualmente una vez
+        actualizarLabelsCPU();
         lblCpuEstado.setText("PASO EJECUTADO");
         lblCpuEstado.setForeground(java.awt.Color.YELLOW);
     }//GEN-LAST:event_btnPasoActionPerformed
