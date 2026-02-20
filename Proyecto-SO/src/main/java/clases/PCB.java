@@ -30,6 +30,11 @@ public class PCB {
     private int prioridad;
     private int deadline;
     
+    
+    private int tiempoLlegada;
+    private int tiempoEspera;
+    private boolean cumplioDeadline;
+    
     private int tamano; // Nuevo atributo: Tamaño en MB o Páginas
     private int direccionMemoria; // Simulación de puntero (índice en el array de RAM)
     
@@ -54,6 +59,10 @@ public class PCB {
         
         this.tamano = tamano;
         this.direccionMemoria = -1; // -1 significa que no está en RAM
+        
+        this.tiempoEspera = 0;
+        this.cumplioDeadline = false;
+        this.tiempoLlegada = 0;
         
     }
             
@@ -91,7 +100,29 @@ public class PCB {
     public int getContadorIO() {
         return contadorIO;
     }
-
+    
+    // --- ⏱️ NUEVOS MÉTODOS DE TELEMETRÍA ---
+    // El Planificador llama a esto cada "tick" del reloj si el proceso está en la cola de listos
+    public void aumentarTiempoEspera() {
+        this.tiempoEspera++;
+    }
+    
+    // Se llama justo cuando el proceso termina para evaluar si tuvo éxito
+    public void verificarExitoMision(int cicloActualGlobal) {
+        if (cicloActualGlobal <= this.deadline) {
+            this.cumplioDeadline = true;
+        } else {
+            this.cumplioDeadline = false;
+        }
+    }
+    
+    public int getTiempoEspera() { return tiempoEspera; }
+    public boolean isCumplioDeadline() { return cumplioDeadline; }
+    public void setTiempoLlegada(int cicloLlegada) { this.tiempoLlegada = cicloLlegada; }
+    public int getTiempoLlegada() { return tiempoLlegada; }
+    // ----------------------------------------
+    
+    
     // Getters y Setters
     public int getId(){ return id; }
     public String getNombre(){ return nombre; }
@@ -113,7 +144,7 @@ public class PCB {
     
     public int getDireccionMemoria() { return direccionMemoria; }
     public void setDireccionMemoria(int direccionMemoria) { this.direccionMemoria = direccionMemoria; }
-    
+      
     @Override
     public String toString() {
         return nombre + " (ID:" + id + ")";
@@ -125,6 +156,9 @@ public class PCB {
         this.memoryAddressRegister = 0;
         this.yaHizoIO = false; // Importante: Reseteamos esto para que pueda volver a pedir I/O
         this.contadorIO = 0;
+        
+        this.tiempoEspera=0;
+        this.cumplioDeadline=false;
     }
     
 }
