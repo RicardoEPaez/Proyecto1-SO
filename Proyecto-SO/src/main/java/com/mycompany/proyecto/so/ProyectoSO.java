@@ -134,10 +134,6 @@ public class ProyectoSO extends javax.swing.JFrame {
         
         // Arrancamos el hilo del CPU (IMPORTANTE: Si no, no funciona "isAlive")
         cpu.start();
-        
-        // Arrancamos el hilo generador de interrupciones externas
-        generadorInterrupciones = new GeneradorInterrupciones(cpu);
-        generadorInterrupciones.start();
     }
     
  

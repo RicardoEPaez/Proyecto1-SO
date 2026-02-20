@@ -21,6 +21,7 @@ public class PanelProcesador extends javax.swing.JPanel {
     private clases.Reloj relojSistema;
     private javax.swing.Timer timerSimulacion;
     private clases.GeneradorInterrupciones generadorInterrupciones;
+    private clases.HiloEntorno hiloEntorno;
     
     /**
      * Creates new form PanelProcesador
@@ -57,11 +58,20 @@ public class PanelProcesador extends javax.swing.JPanel {
             generadorInterrupciones.interrupt(); // Lo despertamos por si estaba durmiendo (Thread.sleep)
             generadorInterrupciones = null;
         }
+        
+        // 3. Detener Hilo del Entorno
+        if (hiloEntorno != null){
+            hiloEntorno.detener();
+            hiloEntorno = null;
+        }
 
-        // 3. Detener Frontend (Timer Visual)
+        // 4. Detener Frontend (Timer Visual)
         if (timerSimulacion != null && timerSimulacion.isRunning()) {
             timerSimulacion.stop();
         }
+        
+        // 5. CERRAR LAS PUERTAS DE LA INTERFAZ
+        planificador.setSistemaCorriendo(false);
     }
       
     
@@ -90,6 +100,17 @@ public class PanelProcesador extends javax.swing.JPanel {
             return;
         }
         
+        // CHEQUEO DE RUTINA DE INTERRUPCIÓN (ISR)
+        if (cpu.isEnRutinaISR()) {
+            lblCpuNombre.setText("RUTINA ISR");
+            lblCpuId.setText("ID: SYSTEM");
+            lblCpuPC.setText("Resolviendo...");
+            
+            lblCpuEstado.setText(":: INTERRUMPIDO ::");
+            lblCpuEstado.setForeground(java.awt.Color.cyan); 
+            return; // Salimos para no evaluar los demás casos
+        }
+
         // ---------------------------------------------------------
         // 2. OBTENER ESTADO DEL CPU
         // ---------------------------------------------------------
@@ -123,15 +144,13 @@ public class PanelProcesador extends javax.swing.JPanel {
         // ---------------------------------------------------------
         // 3. ESTADO DINÁMICO (MIENTRAS CORRE EL RELOJ)
         // ---------------------------------------------------------
-        // Leemos el estado interno del proceso para saber si le cayó una interrupción
+        // Leemos el estado interno del proceso
         clases.Estado estadoActual = proceso.getEstado();
 
-        // CASO C: FUE ATACADO POR EL GENERADOR DE INTERRUPCIONES
-        if (estadoActual == clases.Estado.BLOQUEADO || estadoActual == clases.Estado.BLOQUEADO) {
-            
-            lblCpuEstado.setText(":: INTERRUMPIDO ::");
+        // CASO C: (Este ya no se disparará mucho por las ISR externas, pero es útil mantenerlo por si el planificador hace expropiaciones internas)
+        if (estadoActual == clases.Estado.BLOQUEADO) {
+            lblCpuEstado.setText(":: BLOQUEADO ::");
             lblCpuEstado.setForeground(java.awt.Color.cyan);
-            
         } 
         // CASO D: EJECUCIÓN NORMAL
         else {
@@ -381,6 +400,22 @@ public class PanelProcesador extends javax.swing.JPanel {
         if (timerSimulacion != null && !timerSimulacion.isRunning()) {
             timerSimulacion.start();
         }
+        
+        // 4. Arrancar generador de interrupciones asíncronas
+        if (generadorInterrupciones == null || !generadorInterrupciones.isAlive()) {
+            generadorInterrupciones = new clases.GeneradorInterrupciones(cpu);
+            generadorInterrupciones.start();
+        }
+        
+        // 5. Arrancar el entorno (llegada aleatoria de procesos normales)
+        if (hiloEntorno == null || !hiloEntorno.isAlive()){
+            hiloEntorno = new clases.HiloEntorno(planificador);
+            hiloEntorno.start();
+        }
+        
+        // 6. ABRIR LAS PUERTAS DE LA INTERFAZ
+        // Avisamos que la simulación ya arrancó para que los botones funcionen
+        planificador.setSistemaCorriendo(true);
     }//GEN-LAST:event_btnIniciarActionPerformed
        
     
@@ -414,10 +449,7 @@ public class PanelProcesador extends javax.swing.JPanel {
         sistemaAbortado = true; 
 
         // 2. Matar el reloj del sistema
-        if (relojSistema != null) {
-            relojSistema.detener();
-            relojSistema = null;
-        }
+        detenerTodo();
 
         // 3. REINICIAR EL PROCESO ACTUAL
         clases.PCB proceso = cpu.getProcesoActual();
