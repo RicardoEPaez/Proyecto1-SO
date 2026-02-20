@@ -32,6 +32,13 @@ public class Planificador {
     private final Semaphore mutex = new Semaphore(1); 
     private int tiempoSistema = 0;
     
+    
+    // --- 📊 VARIABLES PARA MÉTRICAS DEL SISTEMA (NUEVO) ---
+    private int totalProcesosTerminados = 0;
+    private int misionesExitosas = 0;
+    private int sumaTiempoEsperaTotal = 0;
+    // ------------------------------------------------------
+    
     private boolean sistemaCorriendo = false; // Bandera para bloquear UI
 
     public Planificador() {
@@ -337,4 +344,47 @@ public class Planificador {
     
     public ColaPrioridad<PCB> getColaListos() { return this.colaListos; }
     public ListaEnlazada<PCB> getColaBloqueados() { return this.listaBloqueados; }
+    
+    
+    // --- ⏱️ BLOQUE 1: ACTUALIZADOR DE TIEMPOS ---
+    public void actualizarTiemposMision(int cicloActual) {
+        try {
+            mutex.acquire();
+            this.tiempoSistema = cicloActual; // Guardamos el ciclo actual del reloj
+            
+            // A todos los que están esperando en la cola de listos, les sumamos 1 de espera
+            Object[] listosEnEspera = colaListos.toArray();
+            if (listosEnEspera != null) {
+                for (Object obj : listosEnEspera) {
+                    if (obj instanceof PCB) {
+                        ((PCB) obj).aumentarTiempoEspera();
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            mutex.release();
+        }
+    }
+    
+    // --- 📈 BLOQUE 2: FÓRMULAS DE RENDIMIENTO ---
+    public double getTasaExitoMision() {
+        if (totalProcesosTerminados == 0) return 100.0; // Evita división por cero
+        return ((double) misionesExitosas / totalProcesosTerminados) * 100.0;
+    }
+
+    public double getTiempoEsperaPromedio() {
+        if (totalProcesosTerminados == 0) return 0.0;
+        return (double) sumaTiempoEsperaTotal / totalProcesosTerminados;
+    }
+
+    public double getThroughput() {
+        if (tiempoSistema == 0) return 0.0;
+        return (double) totalProcesosTerminados / tiempoSistema;
+    }
+    
+    public int getTotalProcesosTerminados() { return totalProcesosTerminados; }
+    public int getMisionesExitosas() { return misionesExitosas; }
+    
 }

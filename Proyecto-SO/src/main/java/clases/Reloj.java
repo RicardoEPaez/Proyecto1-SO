@@ -13,7 +13,7 @@ public class Reloj extends Thread {
     private CPU cpu;
     private volatile boolean activo = true;
     private int cicloActual = 0;
-
+    
     public Reloj(Planificador planificador, CPU cpu) {
         this.planificador = planificador;
         this.cpu = cpu;
@@ -27,14 +27,14 @@ public class Reloj extends Thread {
                 Thread.sleep(1000); 
                 cicloActual++;
                 System.out.println(">>> [RELOJ] Ciclo Global: " + cicloActual);
-
+                
                 // 2. ACTUALIZAR I/O (Ya es seguro porque Planificador usa semáforos dentro)
                 planificador.verificarBloqueados(); 
 
                 // 3. AVISAR AL CPU (Reemplazo de notify())
                 // En lugar de synchronized/notify, liberamos un "ticket" para el CPU.
                 cpu.enviarPulsoReloj(); 
-
+                
             } catch (InterruptedException e) {
                 System.err.println("Error: " + e.getMessage());
             }
