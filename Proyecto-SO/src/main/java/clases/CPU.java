@@ -182,7 +182,7 @@ public class CPU extends Thread {
             this.procesoActual.setEstado(Estado.LISTO);
             
             // Lo devolvemos a la cola del planificador
-            planificador.agregarProceso(this.procesoActual);
+            planificador.expulsarProceso(this.procesoActual);
             
             // Limpiamos la CPU para que quede vacía
             this.procesoActual = null;
