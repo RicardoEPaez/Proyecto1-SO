@@ -136,6 +136,12 @@ public class PanelCreador extends javax.swing.JPanel {
         // TODO add your handling code here:
         if (planificadorRef == null) return;
         
+        // === ALCABALA: VERIFICAR SI EL SISTEMA ESTÁ ACTIVO ===
+        if (!planificadorRef.isSistemaCorriendo()) {
+            JOptionPane.showMessageDialog(this, "El sistema está detenido. Presione 'Iniciar' en el panel principal para aceptar nuevos procesos.", "Sistema Detenido", JOptionPane.WARNING_MESSAGE);
+            return; // Corta la ejecución aquí mismo
+        }
+        
         try{
             // 1. Obtener datos de los campos
             String nombre = txtNombre.getText();
@@ -177,6 +183,12 @@ public class PanelCreador extends javax.swing.JPanel {
     private void btnAleatorioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAleatorioActionPerformed
         // TODO add your handling code here:
         if (planificadorRef == null) return;
+        
+        // === ALCABALA: VERIFICAR SI EL SISTEMA ESTÁ ACTIVO ===
+        if (!planificadorRef.isSistemaCorriendo()) {
+            JOptionPane.showMessageDialog(this, "El sistema está detenido. Presione 'Iniciar' en el panel principal para aceptar nuevos procesos.", "Sistema Detenido", JOptionPane.WARNING_MESSAGE);
+            return; // Corta la ejecución aquí mismo
+        }
         
         // Usamos la clase GeneradorProcesos que ya tienen en el proyecto
         PCB nuevo = GeneradorProcesos.generarProcesoAleatorio();

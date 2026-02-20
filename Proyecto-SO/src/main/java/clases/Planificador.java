@@ -31,6 +31,8 @@ public class Planificador {
     // Mutex = Mutual Exclusion. Permiso único.
     private final Semaphore mutex = new Semaphore(1); 
     private int tiempoSistema = 0;
+    
+    private boolean sistemaCorriendo = false; // Bandera para bloquear UI
 
     public Planificador() {
         this.colaListos = new ColaPrioridad<>();
@@ -60,6 +62,14 @@ public class Planificador {
     
     public void setMemoria(Memoria memoria) {
         this.memoria = memoria;
+    }
+    
+    public boolean isSistemaCorriendo() {
+        return sistemaCorriendo;
+    }
+
+    public void setSistemaCorriendo(boolean estado) {
+        this.sistemaCorriendo = estado;
     }
 
     // --- MÉTODOS PRINCIPALES (Protegidos con Semáforo) ---
