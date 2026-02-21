@@ -1,0 +1,184 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
+ */
+package com.mycompany.proyecto.so;
+import clases.PCB;
+import clases.Planificador;
+import estructuras.ColaPrioridad;
+import estructuras.ListaEnlazada;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.JOptionPane;
+/**
+ *
+ * @author Home
+ */
+public class PanelColas extends javax.swing.JPanel {
+    
+    private Planificador planificadorRef; // Referencia para agregar procesos
+
+    /**
+     * Creates new form PanelColas
+     */
+    public PanelColas() {
+        initComponents();
+
+    // 1. MOVER TABLAS A LA IZQUIERDA
+    // Usamos FlowLayout alineado a la IZQUIERDA (LEFT).
+    // Los números (20, 10) son el espacio (margen) a la izquierda y arriba.
+    // Si quieres pegarlas más al borde, baja el 20 a 5 o 0.
+    this.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 20, 10));
+    
+    // 2. CENTRAR TÍTULOS DE LAS TABLAS
+    // Esto "pega" el título al borde y lo fuerza al CENTRO.
+    
+    // --- Tabla Izquierda (Listos) ---
+    if (jScrollPane1 != null) {
+        jScrollPane1.setBorder(javax.swing.BorderFactory.createTitledBorder(
+            null, 
+            "COLA DE LISTOS (Ready)", 
+            javax.swing.border.TitledBorder.CENTER, // <--- AQUÍ ESTÁ EL TRUCO (CENTER)
+            javax.swing.border.TitledBorder.TOP, 
+            new java.awt.Font("Segoe UI", 1, 12)
+        ));
+        // Aseguramos que tenga un tamaño base para que no se encoja
+        jScrollPane1.setPreferredSize(new java.awt.Dimension(400, 250));
+    }
+
+    // --- Tabla Derecha (Bloqueados) ---
+    if (jScrollPane2 != null) {
+        jScrollPane2.setBorder(javax.swing.BorderFactory.createTitledBorder(
+            null, 
+            "COLA DE BLOQUEADOS (Waiting)", 
+            javax.swing.border.TitledBorder.CENTER, // Centrado también para que combinen
+            javax.swing.border.TitledBorder.TOP, 
+            new java.awt.Font("Segoe UI", 1, 12)
+        ));
+        // Tamaño base igual a la otra
+        jScrollPane2.setPreferredSize(new java.awt.Dimension(400, 250));
+    }
+    }
+    
+    public void setPlanificador(Planificador planificador) {
+        this.planificadorRef = planificador;
+    }
+    
+    public void actualizarColas(ColaPrioridad<PCB> colaListos, ListaEnlazada<PCB> listaBloq) {
+        
+        // =========================================================
+        // 1. PINTAR TABLA DE LISTOS (Usando toArray)
+        // =========================================================
+        DefaultTableModel modeloListos = (DefaultTableModel) tbListos.getModel();
+        modeloListos.setRowCount(0); // Limpiar tabla vieja
+        
+        if (colaListos != null && !colaListos.estaVacia()) {
+            // Convertimos la cola a un arreglo de Objetos
+            Object[] arregloListos = colaListos.toArray();
+            
+            for (Object obj : arregloListos) {
+                if (obj != null) {
+                    PCB p = (PCB) obj; // Convertimos (Casting) el Object a PCB
+                    
+                    modeloListos.addRow(new Object[]{
+                        p.getId(),        // O p.getId() según tu clase PCB
+                        p.getNombre(),
+                        p.getPrioridad(),
+                        p.getTamano()+ " MB"
+                    });
+                }
+            }
+        }
+        
+        // =========================================================
+        // 2. PINTAR TABLA DE BLOQUEADOS (Usando toArray)
+        // =========================================================
+        DefaultTableModel modeloBloq = (DefaultTableModel) tbBloqueados.getModel();
+        modeloBloq.setRowCount(0); // Limpiar tabla vieja
+        
+        if (listaBloq != null) {
+            // Asumo que tu ListaEnlazada también tiene toArray(). 
+            // Si no lo tiene, avísame, pero normalmente lo tienen igual.
+            Object[] arregloBloq = listaBloq.toArray(); 
+            
+            for (Object obj : arregloBloq) {
+                if (obj != null) {
+                    PCB p = (PCB) obj; // Casting
+                    
+                    // Calculamos cuánto le falta para salir del I/O
+                    int restante = p.getLongitudIO() - p.getContadorIO();
+                    
+                    modeloBloq.addRow(new Object[]{
+                        p.getId(),      // O p.getId()
+                        p.getNombre(),
+                        "I/O",           // Motivo
+                        restante         // Ciclos restantes
+                    });
+                }
+            }
+        }
+    }
+
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
+     */
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        jScrollPane1 = new javax.swing.JScrollPane();
+        tbListos = new javax.swing.JTable();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        tbBloqueados = new javax.swing.JTable();
+
+        tbListos.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "ID", "Nombre", "Prioridad", "Tamano"
+            }
+        ));
+        jScrollPane1.setViewportView(tbListos);
+
+        tbBloqueados.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "ID", "Nombre", "Motivo", "Tiempo Restante"
+            }
+        ));
+        jScrollPane2.setViewportView(tbBloqueados);
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        this.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(0, 0, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 390, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 452, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap(34, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 203, Short.MAX_VALUE)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
+                .addGap(81, 81, 81))
+        );
+    }// </editor-fold>//GEN-END:initComponents
+
+
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JTable tbBloqueados;
+    private javax.swing.JTable tbListos;
+    // End of variables declaration//GEN-END:variables
+}
