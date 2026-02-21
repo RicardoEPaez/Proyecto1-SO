@@ -60,8 +60,9 @@ public class GeneradorProcesos {
         // 5. Deadline (Tiempo límite)
         // El deadline debe ser al menos igual a las instrucciones totales + un margen.
         // Simulamos procesos urgentes (margen pequeño) y relajados (margen amplio).
-        int margen = random.nextInt(50) + 10; // Margen entre 10 y 60 ciclos extra
-        int deadline = instruccionesTotales + margen;
+        int factorEspera = 6;
+        int margen = random.nextInt(100) + 50; // Margen entre 10 y 60 ciclos extra
+        int deadline = (instruccionesTotales * factorEspera) + longitudIO + margen;
 
         // 6. GENERAR TAMAÑO ALEATORIO
         // Fórmula: Random entre Min y Max

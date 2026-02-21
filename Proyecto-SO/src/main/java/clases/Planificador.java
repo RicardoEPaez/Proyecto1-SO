@@ -177,26 +177,26 @@ public class Planificador {
     
     // Lógica interna sin semáforo (para poder reusarla)
     private void terminarProcesoInterno(PCB proceso) {
-        System.out.println("[Planificador] Proceso finalizado: " + proceso.getNombre());
-        
-        // --- 1. REGISTRAR TELEMETRÍA ---
-        totalProcesosTerminados++;
-        sumaTiempoEsperaTotal += proceso.getTiempoEspera();
-        
-        // El PCB calcula si cumplió o no el deadline basándose en el tiempo actual
-        proceso.verificarExitoMision(this.tiempoSistema);
-        
+    System.out.println("[Planificador] Proceso finalizado: " + proceso.getNombre());
+    
+    // --- 1. REGISTRAR TELEMETRÍA ---
+    totalProcesosTerminados++;
+    sumaTiempoEsperaTotal += proceso.getTiempoEspera();
+    
+    // El PCB calcula si cumplió o no el deadline basándose en el tiempo actual
+    proceso.verificarExitoMision(this.tiempoSistema);
+    
         if (proceso.isCumplioDeadline()) {
             misionesExitosas++;
         }
-        // -------------------------------
-        
-        // 2. Liberar RAM
-        memoria.liberarMemoria(proceso);
-        
-        // 3. Revisar si alguien del Swap puede entrar
-        revisarColaSwap();
-    }
+    // -------------------------------
+    
+    // 2. Liberar RAM
+    memoria.liberarMemoria(proceso);
+    
+    // 3. Revisar si alguien del Swap puede entrar
+    revisarColaSwap();
+}
     
     // --- GESTIÓN DE MEMORIA VIRTUAL (SWAP) ---
 

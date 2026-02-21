@@ -5,7 +5,7 @@
 package clases;
 
 /**
- * Reloj Maestro usando Semáforos para señalización.
+ * Reloj Maestro para el Ciclo de Reloj.
  * @author Ramon-Carrasquel
  */
 public class Reloj extends Thread {
