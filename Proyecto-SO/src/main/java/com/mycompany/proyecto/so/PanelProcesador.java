@@ -621,7 +621,8 @@ public class PanelProcesador extends javax.swing.JPanel {
         if (relojSistema == null || !relojSistema.isAlive()) {
             relojSistema = new clases.Reloj(planificador, cpu);
             
-            
+            // Le decimos al nuevo reloj que empiece donde se quedó la gráfica
+            relojSistema.setCicloActual(ultimoCicloGraficado);
             
            // Sincronizar velocidad con el Slider antes de arrancar
                 int msIniciales = sliderVelocidad.getValue();

@@ -54,4 +54,8 @@ public class Reloj extends Thread {
     }
     
     public int getCicloActual() { return cicloActual; }
+    
+    public void setCicloActual(int ciclo) {
+        this.cicloActual = ciclo;
+    }
 }
