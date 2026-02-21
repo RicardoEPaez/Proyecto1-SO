@@ -14,20 +14,28 @@ public class Reloj extends Thread {
     private volatile boolean activo = true;
     private int cicloActual = 0;
     
+    
+    private volatile int tiempoCicloMs = 1000;
+    
     public Reloj(Planificador planificador, CPU cpu) {
         this.planificador = planificador;
         this.cpu = cpu;
     }
 
+    public void setTiempoCiclo(int ms){
+        this.tiempoCicloMs = ms;
+    }
+    
     @Override
     public void run() {
         while (activo) {
             try {
                 // 1. RITMO (1 segundo real)
-                Thread.sleep(1000); 
+                Thread.sleep(tiempoCicloMs); 
                 cicloActual++;
                 System.out.println(">>> [RELOJ] Ciclo Global: " + cicloActual);
                 
+                planificador.actualizarTiemposMision(cicloActual);
                 // 2. ACTUALIZAR I/O (Ya es seguro porque Planificador usa semáforos dentro)
                 planificador.verificarBloqueados(); 
 

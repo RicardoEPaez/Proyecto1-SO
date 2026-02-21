@@ -33,6 +33,7 @@ public class PanelProcesador extends javax.swing.JPanel {
         this.cpu = cpu;
         this.planificador = planificador;
         initComponents();
+        actualizarLabelVelocidad();
         inicializarGrafico();
         // En el Constructor:
         timerSimulacion = new javax.swing.Timer(100, new java.awt.event.ActionListener() {
@@ -310,6 +311,9 @@ public class PanelProcesador extends javax.swing.JPanel {
         lblProcesosTerminados = new javax.swing.JLabel();
         jLabel11 = new javax.swing.JLabel();
         lblTasaExito = new javax.swing.JLabel();
+        sliderVelocidad = new javax.swing.JSlider();
+        lblValorVelocidad = new javax.swing.JLabel();
+        jLabel12 = new javax.swing.JLabel();
 
         setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CONTROL DE MISION", javax.swing.border.TitledBorder.CENTER, javax.swing.border.TitledBorder.TOP));
         setForeground(new java.awt.Color(255, 255, 255));
@@ -347,7 +351,7 @@ public class PanelProcesador extends javax.swing.JPanel {
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel1.setText("TIEMPO DE MISION: T+ 0 CICLOS");
         add(jLabel1);
-        jLabel1.setBounds(20, 40, 190, 40);
+        jLabel1.setBounds(20, 40, 220, 40);
 
         jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel2.setText("ALGORITMO");
@@ -541,6 +545,26 @@ public class PanelProcesador extends javax.swing.JPanel {
 
         add(jPanel2);
         jPanel2.setBounds(440, 140, 380, 140);
+
+        sliderVelocidad.setMaximum(2000);
+        sliderVelocidad.setMinimum(50);
+        sliderVelocidad.setValue(1000);
+        sliderVelocidad.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                sliderVelocidadStateChanged(evt);
+            }
+        });
+        add(sliderVelocidad);
+        sliderVelocidad.setBounds(170, 20, 200, 22);
+
+        lblValorVelocidad.setText("1000 ms");
+        add(lblValorVelocidad);
+        lblValorVelocidad.setBounds(370, 20, 50, 16);
+
+        jLabel12.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabel12.setText("DURACION DEL CICLO");
+        add(jLabel12);
+        jLabel12.setBounds(20, 20, 130, 16);
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnIniciarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIniciarActionPerformed
@@ -593,6 +617,20 @@ public class PanelProcesador extends javax.swing.JPanel {
         // 2. Arrancar el Reloj Lógico (Backend)
         if (relojSistema == null || !relojSistema.isAlive()) {
             relojSistema = new clases.Reloj(planificador, cpu);
+            
+            
+            
+           // Sincronizar velocidad con el Slider antes de arrancar
+                int msIniciales = sliderVelocidad.getValue();
+                relojSistema.setTiempoCiclo(msIniciales);
+
+                // Aplicamos la misma regla visual aquí al arrancar:
+                if (msIniciales >= 1000) {
+                    lblValorVelocidad.setText(String.format("%.1f s", msIniciales / 1000.0));
+                } else {
+                    lblValorVelocidad.setText(msIniciales + " ms");
+                }
+    
             relojSistema.start();
         }
         
@@ -618,6 +656,17 @@ public class PanelProcesador extends javax.swing.JPanel {
         planificador.setSistemaCorriendo(true);
     }//GEN-LAST:event_btnIniciarActionPerformed
        
+    
+    private void actualizarLabelVelocidad() {
+        int ms = sliderVelocidad.getValue();
+        if (ms >= 1000) {
+         double segundos = ms / 1000.0;
+        lblValorVelocidad.setText(String.format("%.1f s", segundos)); 
+    } else {
+        lblValorVelocidad.setText(ms + " ms");
+    }
+    }
+    
     
     private void btnDetenerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDetenerActionPerformed
         // Llamamos al método que creamos arriba
@@ -665,6 +714,15 @@ public class PanelProcesador extends javax.swing.JPanel {
         
     }//GEN-LAST:event_btnAbortarActionPerformed
 
+    private void sliderVelocidadStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_sliderVelocidadStateChanged
+       actualizarLabelVelocidad(); // Actualiza el texto con ms o s
+    
+        // Actualiza el reloj en tiempo real
+        if (relojSistema != null) {
+            relojSistema.setTiempoCiclo(sliderVelocidad.getValue());
+        }
+    }//GEN-LAST:event_sliderVelocidadStateChanged
+
    
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -676,6 +734,7 @@ public class PanelProcesador extends javax.swing.JPanel {
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
+    private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -694,6 +753,8 @@ public class PanelProcesador extends javax.swing.JPanel {
     private javax.swing.JLabel lblProcesosTerminados;
     private javax.swing.JLabel lblTasaExito;
     private javax.swing.JLabel lblThroughput;
+    private javax.swing.JLabel lblValorVelocidad;
+    private javax.swing.JSlider sliderVelocidad;
     private javax.swing.JSpinner spinnerQuantum;
     // End of variables declaration//GEN-END:variables
 
