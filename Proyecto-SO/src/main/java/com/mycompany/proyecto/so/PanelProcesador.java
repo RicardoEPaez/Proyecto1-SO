@@ -320,7 +320,7 @@ public class PanelProcesador extends javax.swing.JPanel {
         setToolTipText("");
         setLayout(null);
 
-        comboAlgoritmos.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "FCFS", "RoundRobin", "SPN", "SRT" }));
+        comboAlgoritmos.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "FCFS", "RoundRobin", "SPN", "SRT", "EDF", " " }));
         add(comboAlgoritmos);
         comboAlgoritmos.setBounds(100, 80, 160, 30);
 
@@ -591,11 +591,14 @@ public class PanelProcesador extends javax.swing.JPanel {
             case "RoundRobin":
                 nuevoAlgoritmo = new clases.AlgoritmoRoundRobin(quantumSeleccionado); 
                 break;
-            //case "SPN":
-                //nuevoAlgoritmo = new clases.AlgoritmoEDF(); 
-                //break;
+            case "SPN":
+                nuevoAlgoritmo = new clases.AlgoritmoPrioridad(); 
+                break;
             case "SRT":
                 nuevoAlgoritmo = new clases.AlgoritmoSRT(); 
+                break;
+            case "EDF":
+                nuevoAlgoritmo = new clases.AlgoritmoEDF();
                 break;
         }
 
