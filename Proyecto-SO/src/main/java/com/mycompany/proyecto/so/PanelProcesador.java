@@ -291,7 +291,6 @@ public class PanelProcesador extends javax.swing.JPanel {
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
-        btnPaso = new javax.swing.JButton();
         btnAbortar = new javax.swing.JButton();
         jPanel1 = new javax.swing.JPanel();
         jLabel4 = new javax.swing.JLabel();
@@ -320,7 +319,7 @@ public class PanelProcesador extends javax.swing.JPanel {
         setToolTipText("");
         setLayout(null);
 
-        comboAlgoritmos.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "FCFS", "RoundRobin", "SPN", "SRT", "EDF", " " }));
+        comboAlgoritmos.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "FCFS", "RoundRobin", "SPN", "SRT", "EDF", "" }));
         add(comboAlgoritmos);
         comboAlgoritmos.setBounds(100, 80, 160, 30);
 
@@ -363,16 +362,6 @@ public class PanelProcesador extends javax.swing.JPanel {
         add(jLabel3);
         jLabel3.setBounds(290, 60, 80, 20);
 
-        btnPaso.setBackground(new java.awt.Color(255, 204, 0));
-        btnPaso.setText("PASO A PASO");
-        btnPaso.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnPasoActionPerformed(evt);
-            }
-        });
-        add(btnPaso);
-        btnPaso.setBounds(760, 70, 160, 50);
-
         btnAbortar.setBackground(new java.awt.Color(153, 0, 0));
         btnAbortar.setText("EMERGENCY ABORT");
         btnAbortar.addActionListener(new java.awt.event.ActionListener() {
@@ -381,7 +370,7 @@ public class PanelProcesador extends javax.swing.JPanel {
             }
         });
         add(btnAbortar);
-        btnAbortar.setBounds(930, 70, 180, 50);
+        btnAbortar.setBounds(760, 70, 180, 50);
 
         jPanel1.setBackground(new java.awt.Color(51, 51, 51));
         jPanel1.setForeground(new java.awt.Color(255, 255, 255));
@@ -561,7 +550,6 @@ public class PanelProcesador extends javax.swing.JPanel {
         add(lblValorVelocidad);
         lblValorVelocidad.setBounds(370, 20, 50, 16);
 
-        jLabel12.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel12.setText("DURACION DEL CICLO");
         add(jLabel12);
         jLabel12.setBounds(20, 20, 130, 16);
@@ -682,21 +670,6 @@ public class PanelProcesador extends javax.swing.JPanel {
         repaint();
     }//GEN-LAST:event_btnDetenerActionPerformed
 
-    private void btnPasoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPasoActionPerformed
-    // 1. Detener automático
-        detenerTodo();
-
-        // 2. Dar un empujón al CPU
-        synchronized(cpu) {
-            cpu.notify();
-        }
-        
-        // 3. Actualizar visualmente una vez
-        actualizarLabelsCPU();
-        lblCpuEstado.setText("PASO EJECUTADO");
-        lblCpuEstado.setForeground(java.awt.Color.YELLOW);
-    }//GEN-LAST:event_btnPasoActionPerformed
-
     private void btnAbortarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAbortarActionPerformed
        // 1. Activar bloqueo visual (para que el Timer no moleste)
         sistemaAbortado = true; 
@@ -733,7 +706,6 @@ public class PanelProcesador extends javax.swing.JPanel {
     private javax.swing.JButton btnAbortar;
     private javax.swing.JButton btnDetener;
     private javax.swing.JButton btnIniciar;
-    private javax.swing.JButton btnPaso;
     private javax.swing.JComboBox<String> comboAlgoritmos;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
